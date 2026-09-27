@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Fungsi bantuan untuk cek role
+    function isStaffOrAdmin() {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+    
+    // User profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Patient data
+    match /patients/{patientId} {
+      allow read: if request.auth != null; // Petugas bisa baca, pasien bisa baca miliknya
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (request.auth.uid == patientId || isStaffOrAdmin());
+    }
+    
+    // Registrations
+    match /registrations/{regId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (request.resource.data.patientId == request.auth.uid || isStaffOrAdmin());
+    }
+    
+    // Services / Poli
+    match /services/{serviceId} {
+      allow read: if true; // Publik (termasuk display TV) bisa baca list poli
+      allow write: if isStaffOrAdmin();
+    }
+    
+    // Queues
+    match /queues/{queueId} {
+      allow read: if true; // Publik (display TV dan pasien) butuh baca antrean
+      allow create: if isStaffOrAdmin(); // Hanya petugas yg buat antrean
+      allow update: if isStaffOrAdmin(); // Hanya petugas yg update status antrean
+    }
+    
+    // Queue Counters (atomic increment)
+    match /queue_counters/{counterId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+    
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if request.auth != null && resource.data.patientId == request.auth.uid;
+      allow create: if isStaffOrAdmin();
+      allow update: if request.auth != null && resource.data.patientId == request.auth.uid;
+    }
+  }
+}
