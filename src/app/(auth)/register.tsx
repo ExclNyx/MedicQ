@@ -1,63 +1,178 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import { AuthScreen } from '../../components/ui/AuthScreen';
+import { FormField } from '../../components/ui/FormField';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { Colors } from '../../core/constants/colors';
 
-export default function RegisterScreen() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
+type Field = 'name' | 'email' | 'password' | 'confirm';
+type Values = Record<Field, string>;
+type Errors = Partial<Record<Field, string>>;
 
-  const handleRegister = () => {
-    Alert.alert(
-      'Berhasil (UI Demo)',
-      'Akun berhasil dibuat. Silakan lengkapi data diri Anda.',
-      [{ text: 'Lanjut', onPress: () => router.replace('/(auth)/complete-profile') }]
-    );
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
+
+// TODO (tim backend): ganti dengan
+// authService.registerPatient(email, password, displayName)  (PRD F-P01)
+async function registerDemo(_name: string, _email: string, _password: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 600));
+}
+
+function validate(values: Values): Errors {
+  const errors: Errors = {};
+  if (values.name.trim().length < 3) {
+    errors.name = 'Nama lengkap minimal 3 karakter.';
+  }
+  if (!EMAIL_PATTERN.test(values.email.trim())) {
+    errors.email = 'Masukkan alamat email yang valid.';
+  }
+  if (values.password.length < MIN_PASSWORD_LENGTH) {
+    errors.password = `Kata sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`;
+  }
+  if (values.confirm !== values.password) {
+    errors.confirm = 'Konfirmasi kata sandi tidak sama.';
+  }
+  return errors;
+}
+
+export default function RegisterScreen() {
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
+
+  const [values, setValues] = useState<Values>({ name: '', email: '', password: '', confirm: '' });
+  const [errors, setErrors] = useState<Errors>({});
+  const [loading, setLoading] = useState(false);
+
+  const setValue = (field: Field, text: string) => {
+    setValues((prev) => ({ ...prev, [field]: text }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(auth)/login');
+  };
+
+  const handleRegister = async () => {
+    if (loading) return;
+
+    const found = validate(values);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
+    setLoading(true);
+    try {
+      await registerDemo(values.name.trim(), values.email.trim(), values.password);
+      router.replace('/(auth)/complete-profile');
+    } catch {
+      setErrors({ email: 'Pendaftaran gagal. Silakan coba lagi.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.form}>
-          <Text style={styles.info}>Daftarkan akun pasien baru. Setelah akun dibuat, Anda perlu melengkapi data diri.</Text>
+    <AuthScreen
+      title="Buat Akun Pasien"
+      subtitle="Daftar untuk mengambil dan memantau antrean puskesmas dari HP Anda."
+      step={{ current: 1, total: 2 }}
+      onBack={goBack}
+    >
+      <FormField
+        label="Nama Lengkap"
+        value={values.name}
+        onChangeText={(text) => setValue('name', text)}
+        error={errors.name}
+        placeholder="Nama sesuai KTP"
+        autoCapitalize="words"
+        autoComplete="name"
+        textContentType="name"
+        returnKeyType="next"
+        onSubmitEditing={() => emailRef.current?.focus()}
+        editable={!loading}
+      />
 
-          <Text style={styles.label}>Nama Lengkap</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nama sesuai KTP" />
+      <FormField
+        ref={emailRef}
+        label="Email"
+        value={values.email}
+        onChangeText={(text) => setValue('email', text)}
+        error={errors.email}
+        placeholder="nama@email.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        editable={!loading}
+      />
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="email@contoh.com" keyboardType="email-address" autoCapitalize="none" />
+      <FormField
+        ref={passwordRef}
+        label="Kata Sandi"
+        value={values.password}
+        onChangeText={(text) => setValue('password', text)}
+        error={errors.password}
+        hint={`Minimal ${MIN_PASSWORD_LENGTH} karakter.`}
+        placeholder="Buat kata sandi"
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="newPassword"
+        returnKeyType="next"
+        onSubmitEditing={() => confirmRef.current?.focus()}
+        editable={!loading}
+      />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Minimal 6 karakter" secureTextEntry />
+      <FormField
+        ref={confirmRef}
+        label="Konfirmasi Kata Sandi"
+        value={values.confirm}
+        onChangeText={(text) => setValue('confirm', text)}
+        error={errors.confirm}
+        placeholder="Ulangi kata sandi"
+        secureTextEntry
+        autoCapitalize="none"
+        autoCorrect={false}
+        textContentType="newPassword"
+        returnKeyType="done"
+        onSubmitEditing={handleRegister}
+        editable={!loading}
+      />
 
-          <Text style={styles.label}>Konfirmasi Password</Text>
-          <TextInput style={styles.input} value={confirm} onChangeText={setConfirm} placeholder="Ulangi password" secureTextEntry />
+      <PrimaryButton label="Buat Akun" onPress={handleRegister} loading={loading} />
 
-          <TouchableOpacity style={styles.btn} onPress={handleRegister} activeOpacity={0.85}>
-            <Text style={styles.btnText}>BUAT AKUN</Text>
-          </TouchableOpacity>
+      <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.linkBtn} onPress={() => router.back()}>
-            <Text style={styles.linkText}>Sudah punya akun? <Text style={styles.linkHighlight}>Masuk</Text></Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.loginRow}>
+        <Text style={styles.loginText}>Sudah punya akun?</Text>
+        <TouchableOpacity onPress={goBack} style={styles.loginLink} accessibilityRole="link">
+          <Text style={styles.loginLinkText}>Masuk</Text>
+        </TouchableOpacity>
+      </View>
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { flexGrow: 1, padding: 20 },
-  form: { backgroundColor: Colors.surface, borderRadius: 20, padding: 24, elevation: 2 },
-  info: { fontSize: 13, color: Colors.onSurfaceVariant, marginBottom: 20, lineHeight: 20, backgroundColor: Colors.primaryContainer, padding: 12, borderRadius: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: Colors.onSurface, backgroundColor: Colors.grey100, marginBottom: 16 },
-  btn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  btnText: { color: Colors.onPrimary, fontSize: 16, fontWeight: '700' },
-  linkBtn: { marginTop: 16, alignItems: 'center' },
-  linkText: { fontSize: 14, color: Colors.onSurfaceVariant },
-  linkHighlight: { color: Colors.primary, fontWeight: '600' },
+  divider: { height: 1, backgroundColor: Colors.outlineVariant, marginVertical: 20 },
+  loginRow: { alignSelf: 'stretch' },
+  loginText: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    fontSize: 14,
+    color: Colors.onSurfaceVariant,
+  },
+  loginLink: { alignSelf: 'stretch', minHeight: 44, justifyContent: 'center' },
+  loginLinkText: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
 });

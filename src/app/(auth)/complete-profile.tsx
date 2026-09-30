@@ -1,76 +1,239 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import { AuthScreen } from '../../components/ui/AuthScreen';
+import { FormField } from '../../components/ui/FormField';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { Colors } from '../../core/constants/colors';
+import type { Gender } from '../../core/models';
+
+type Field = 'nik' | 'fullName' | 'dob' | 'gender' | 'address' | 'phone';
+type Values = { nik: string; fullName: string; dob: string; address: string; phone: string };
+type Errors = Partial<Record<Field, string>>;
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'male', label: 'Laki-laki' },
+  { value: 'female', label: 'Perempuan' },
+];
+
+/** Rapikan ketikan jadi DD-MM-YYYY (tanda "-" ditambah otomatis). */
+function formatDobInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join('-');
+}
+
+/** Ubah "DD-MM-YYYY" menjadi Date; null kalau tanggalnya tidak valid. */
+function parseDob(value: string): Date | null {
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  const isRealDate =
+    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+  if (!isRealDate || year < 1900 || date > new Date()) return null;
+  return date;
+}
+
+function validate(values: Values, gender: Gender | null): Errors {
+  const errors: Errors = {};
+  if (!/^\d{16}$/.test(values.nik)) {
+    errors.nik = 'NIK harus 16 digit angka.';
+  }
+  if (values.fullName.trim().length < 3) {
+    errors.fullName = 'Isi nama lengkap sesuai KTP.';
+  }
+  if (!parseDob(values.dob)) {
+    errors.dob = 'Tanggal lahir tidak valid. Contoh: 17-08-1990.';
+  }
+  if (!gender) {
+    errors.gender = 'Pilih jenis kelamin.';
+  }
+  if (values.address.trim().length < 5) {
+    errors.address = 'Isi alamat dengan lengkap.';
+  }
+  if (!/^(\+62|62|0)8\d{8,11}$/.test(values.phone.replace(/[\s-]/g, ''))) {
+    errors.phone = 'Nomor HP tidak valid. Contoh: 081234567890.';
+  }
+  return errors;
+}
+
+// TODO (tim backend): ganti dengan patientService.createOrUpdateProfile(uid, {
+//   nik, fullName, dateOfBirth (Date dari parseDob), gender, address, phoneNumber })  (PRD F-P02)
+async function saveProfileDemo(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 600));
+}
 
 export default function CompleteProfileScreen() {
-  const [nik, setNik] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState('');
-  const [gender, setGender] = useState('male');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const nameRef = useRef<TextInput>(null);
+  const dobRef = useRef<TextInput>(null);
 
-  const handleSubmit = () => {
-    Alert.alert(
-      'Berhasil (UI Demo)',
-      'Data diri berhasil disimpan.',
-      [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-    );
+  const [values, setValues] = useState<Values>({
+    nik: '',
+    fullName: '',
+    dob: '',
+    address: '',
+    phone: '',
+  });
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [errors, setErrors] = useState<Errors>({});
+  const [loading, setLoading] = useState(false);
+
+  const setValue = (field: keyof Values, text: string) => {
+    setValues((prev) => ({ ...prev, [field]: text }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
+  };
+
+  const handleSubmit = async () => {
+    if (loading) return;
+
+    const found = validate(values, gender);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
+    setLoading(true);
+    try {
+      await saveProfileDemo();
+      // Alur PRD A: setelah data lengkap, pasien masuk ke Beranda.
+      router.replace('/(patient)/home');
+    } catch {
+      setErrors({ nik: 'Data gagal disimpan. Silakan coba lagi.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.form}>
-          <Text style={styles.info}>Data ini diperlukan untuk verifikasi identitas oleh petugas.</Text>
-          <Text style={styles.label}>NIK (16 digit)</Text>
-          <TextInput style={styles.input} value={nik} onChangeText={setNik} placeholder="3374..." keyboardType="numeric" maxLength={16} />
-          
-          <Text style={styles.label}>Nama Lengkap (sesuai KTP)</Text>
-          <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Nama lengkap" />
-          
-          <Text style={styles.label}>Tanggal Lahir (YYYY-MM-DD)</Text>
-          <TextInput style={styles.input} value={dob} onChangeText={setDob} placeholder="1990-01-01" keyboardType="numeric" />
-          
-          <Text style={styles.label}>Jenis Kelamin</Text>
-          <View style={styles.genderRow}>
-            <TouchableOpacity style={[styles.genderBtn, gender === 'male' && styles.genderBtnActive]} onPress={() => setGender('male')}>
-              <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>👨 Laki-laki</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.genderBtn, gender === 'female' && styles.genderBtnActive]} onPress={() => setGender('female')}>
-              <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>👩 Perempuan</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.label}>Alamat</Text>
-          <TextInput style={[styles.input, styles.inputMulti]} value={address} onChangeText={setAddress} placeholder="Jl. ..." multiline numberOfLines={3} />
-          
-          <Text style={styles.label}>Nomor HP</Text>
-          <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="08..." keyboardType="phone-pad" />
-          
-          <TouchableOpacity style={styles.btn} onPress={handleSubmit} activeOpacity={0.85}>
-            <Text style={styles.btnText}>SIMPAN DATA DIRI</Text>
-          </TouchableOpacity>
+    <AuthScreen
+      title="Lengkapi Data Diri"
+      subtitle="Data ini dipakai petugas untuk memverifikasi identitas Anda."
+      step={{ current: 2, total: 2 }}
+    >
+      <FormField
+        label="NIK"
+        value={values.nik}
+        onChangeText={(text) => setValue('nik', text.replace(/\D/g, ''))}
+        error={errors.nik}
+        hint="16 digit, sesuai KTP."
+        placeholder="3374xxxxxxxxxxxx"
+        keyboardType="number-pad"
+        maxLength={16}
+        returnKeyType="next"
+        onSubmitEditing={() => nameRef.current?.focus()}
+        editable={!loading}
+      />
+
+      <FormField
+        ref={nameRef}
+        label="Nama Lengkap"
+        value={values.fullName}
+        onChangeText={(text) => setValue('fullName', text)}
+        error={errors.fullName}
+        hint="Sesuai KTP."
+        placeholder="Nama lengkap"
+        autoCapitalize="words"
+        returnKeyType="next"
+        onSubmitEditing={() => dobRef.current?.focus()}
+        editable={!loading}
+      />
+
+      <FormField
+        ref={dobRef}
+        label="Tanggal Lahir"
+        value={values.dob}
+        onChangeText={(text) => setValue('dob', formatDobInput(text))}
+        error={errors.dob}
+        hint="Format: DD-MM-YYYY."
+        placeholder="17-08-1990"
+        keyboardType="number-pad"
+        maxLength={10}
+        editable={!loading}
+      />
+
+      <View style={styles.group}>
+        <Text style={styles.groupLabel}>Jenis Kelamin</Text>
+        <View style={styles.genderRow} accessibilityRole="radiogroup">
+          {GENDER_OPTIONS.map((option) => {
+            const selected = gender === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.genderOption, selected && styles.genderOptionSelected]}
+                onPress={() => {
+                  setGender(option.value);
+                  setErrors((prev) => ({ ...prev, gender: undefined }));
+                }}
+                disabled={loading}
+                activeOpacity={0.85}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={option.label}
+              >
+                <Text style={[styles.genderText, selected && styles.genderTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        {errors.gender ? <Text style={styles.groupError}>{errors.gender}</Text> : null}
+      </View>
+
+      <FormField
+        label="Alamat"
+        value={values.address}
+        onChangeText={(text) => setValue('address', text)}
+        error={errors.address}
+        placeholder="Jalan, RT/RW, kelurahan, kecamatan"
+        multiline
+        autoCapitalize="sentences"
+        editable={!loading}
+      />
+
+      <FormField
+        label="Nomor HP"
+        value={values.phone}
+        onChangeText={(text) => setValue('phone', text)}
+        error={errors.phone}
+        placeholder="081234567890"
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
+        editable={!loading}
+      />
+
+      <PrimaryButton label="Simpan Data Diri" onPress={handleSubmit} loading={loading} />
+    </AuthScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { flexGrow: 1, padding: 20 },
-  form: { backgroundColor: Colors.surface, borderRadius: 20, padding: 24, elevation: 2 },
-  info: { fontSize: 13, color: Colors.onSurfaceVariant, marginBottom: 20, lineHeight: 20, backgroundColor: Colors.primaryContainer, padding: 12, borderRadius: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: Colors.onSurface, backgroundColor: Colors.grey100, marginBottom: 16 },
-  inputMulti: { minHeight: 80, textAlignVertical: 'top' },
-  genderRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  genderBtn: { flex: 1, borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: Colors.grey100 },
-  genderBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer },
-  genderText: { fontSize: 14, color: Colors.onSurfaceVariant },
-  genderTextActive: { color: Colors.primary, fontWeight: '600' },
-  btn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  btnText: { color: Colors.onPrimary, fontSize: 16, fontWeight: '700' },
+  group: { marginBottom: 16 },
+  groupLabel: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginBottom: 6 },
+  groupError: { fontSize: 12, color: Colors.error, marginTop: 6 },
+  genderRow: { flexDirection: 'row', gap: 12 },
+  genderOption: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: Colors.outlineVariant,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
+  genderOptionSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer },
+  genderText: {
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.onSurfaceVariant,
+  },
+  genderTextSelected: { color: Colors.onPrimaryContainer },
 });
