@@ -8,6 +8,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { Colors } from '../../core/constants/colors';
+import { useScrollToFocusedInput } from './AuthScreen';
 
 interface FormFieldProps extends TextInputProps {
   label: string;
@@ -28,6 +29,7 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
   const isPassword = !!secureTextEntry;
+  const scrollToFocusedInput = useScrollToFocusedInput();
 
   return (
     <View style={styles.wrapper}>
@@ -51,6 +53,7 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
           onFocus={(event) => {
             setFocused(true);
             onFocus?.(event);
+            scrollToFocusedInput();
           }}
           onBlur={(event) => {
             setFocused(false);

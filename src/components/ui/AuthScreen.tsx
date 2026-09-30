@@ -1,15 +1,35 @@
-import React, { type ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+
 import {
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../core/constants/colors';
+
+/** Ruang kosong (px) yang dijaga di bawah kolom aktif, supaya pesan error/hint ikut terlihat. */
+const SPACE_BELOW_FIELD = 64;
+
+const ScrollToFocusedContext = createContext<() => void>(() => {});
+
+/** Dipanggil kolom isian saat difokuskan, supaya layar menggulir dan kolomnya tidak tertutup keyboard. */
+export function useScrollToFocusedInput() {
+  return useContext(ScrollToFocusedContext);
+}
 
 interface AuthScreenProps {
   title: string;
@@ -24,56 +44,103 @@ interface AuthScreenProps {
 /**
  * Kerangka layar untuk alur akun (register, lengkapi data diri):
  * header biru + kartu putih di bawahnya, sama gayanya dengan layar login.
+ *
+ * Keyboard: layar ini mengatur sendiri agar kolom yang sedang diisi selalu
+ * terangkat di atas keyboard (di Android edge-to-edge KeyboardAvoidingView tidak cukup).
  */
 export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScreenProps) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const keyboardTop = useRef<number | null>(null); // posisi atas keyboard di layar, null saat tertutup
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const scrollFocusedIntoView = useCallback(() => {
+    const top = keyboardTop.current;
+    const input = TextInput.State.currentlyFocusedInput();
+    if (top === null || !input) return;
+
+    input.measureInWindow((_x, y, _width, height) => {
+      const overlap = y + height + SPACE_BELOW_FIELD - top;
+      if (overlap > 0) {
+        scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (event) => {
+      keyboardTop.current = event.endCoordinates.screenY;
+      setKeyboardHeight(event.endCoordinates.height);
+      // beri waktu agar ruang tambahan di bawah konten sudah terpasang
+      setTimeout(scrollFocusedIntoView, 100);
+    });
+    const hide = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardTop.current = null;
+      setKeyboardHeight(0);
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [scrollFocusedIntoView]);
+
+  // Pindah antar kolom saat keyboard sudah terbuka (tombol "next"): gulir lagi.
+  const scrollOnFocus = useMemo(() => () => setTimeout(scrollFocusedIntoView, 150), [scrollFocusedIntoView]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-          <View style={styles.inner}>
-            {onBack ? (
-              <TouchableOpacity
-                onPress={onBack}
-                style={styles.back}
-                accessibilityRole="button"
-                accessibilityLabel="Kembali"
-              >
-                <Text style={styles.backText}>‹  Kembali</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.backSpacer} />
-            )}
+    <ScrollToFocusedContext.Provider value={scrollOnFocus}>
+      <View style={styles.container}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 24 : 32 + insets.bottom },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          onScroll={(event) => {
+            scrollY.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+        >
+          <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+            <View style={styles.inner}>
+              {onBack ? (
+                <TouchableOpacity
+                  onPress={onBack}
+                  style={styles.back}
+                  accessibilityRole="button"
+                  accessibilityLabel="Kembali"
+                >
+                  <Text style={styles.backText}>‹  Kembali</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.backSpacer} />
+              )}
 
-            {step && (
-              <Text style={styles.step}>
-                Langkah {step.current} dari {step.total}
-              </Text>
-            )}
-            <Text style={styles.title}>{title}</Text>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              {step && (
+                <Text style={styles.step}>
+                  Langkah {step.current} dari {step.total}
+                </Text>
+              )}
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
           </View>
-        </View>
 
-        <View style={styles.content}>
-          <View style={styles.card}>{children}</View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.content}>
+            <View style={styles.card}>{children}</View>
+          </View>
+        </ScrollView>
+      </View>
+    </ScrollToFocusedContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { flexGrow: 1, paddingBottom: 32 },
+  scroll: { flexGrow: 1 },
 
   hero: {
     backgroundColor: Colors.primary,
