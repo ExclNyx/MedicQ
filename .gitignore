@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+#gitignore
+#AI / editor local — jangan di-commit
+.claude/
+.agents/
+AGENTS.md
+skills-lock.json
