@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useColors } from '../../core/theme/ThemeContext';
 
 const MONTHS_ID = [
@@ -18,25 +17,27 @@ const MONTHS_ID = [
   'Desember',
 ];
 
-/** Senin = 0 … Minggu = 6 (kalender Indonesia). */
 const WEEKDAYS_ID = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const MIN_YEAR = 1900;
 
 function pad(n: number): string {
-  return n.toString().padStart(2, '0');
+  return String(n).padStart(2, '0');
 }
 
-/** DD-MM-YYYY → Date; null bila tidak valid. */
 function parseDdMmYyyy(value: string): Date | null {
-  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value || '');
   if (!match) return null;
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   const date = new Date(year, month - 1, day);
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     return null;
   }
-  if (year < 1900 || date > new Date()) return null;
+  const now = new Date();
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  if (year < MIN_YEAR || date > todayEnd) return null;
   return date;
 }
 
@@ -44,9 +45,8 @@ function formatDdMmYyyy(date: Date): string {
   return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
 }
 
-/** Index hari Senin=0 utk tanggal 1 di bulan tersebut. */
 function mondayIndexFirstDay(year: number, month: number): number {
-  const jsDay = new Date(year, month, 1).getDay(); // 0=Minggu
+  const jsDay = new Date(year, month, 1).getDay();
   return jsDay === 0 ? 6 : jsDay - 1;
 }
 
@@ -62,21 +62,24 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
+function endOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
 interface DatePickerFieldProps {
   label: string;
-  /** Nilai form dalam DD-MM-YYYY; kosong = belum dipilih. */
   value: string;
   onChange: (date: Date) => void;
   error?: string | null;
   hint?: string;
   placeholder?: string;
   disabled?: boolean;
-  /** Batas maksimum (default: hari ini). */
-  maximumDate?: Date;
 }
 
 /**
- * Kolom tanggal lahir + kalender modal murni React Native (Expo Go friendly).
+ * Tanggal lahir — kalender inline sederhana (tanpa Modal, tanpa icon font di panel).
+ * Navigasi: bulan ‹ ›, tahun bisa diketik / ‹ ›, grid hari per baris minggu.
  */
 export function DatePickerField({
   label,
@@ -84,58 +87,95 @@ export function DatePickerField({
   onChange,
   error,
   hint,
-  placeholder = 'Ketuk untuk memilih tanggal',
+  placeholder = 'Pilih tanggal lahir',
   disabled = false,
-  maximumDate,
 }: DatePickerFieldProps) {
   const c = useColors();
-  const max = maximumDate ?? new Date();
+  const max = endOfToday();
+  const maxYear = max.getFullYear();
+
+  const parsed = parseDdMmYyyy(value);
+  const initial = parsed ?? max;
+
   const [open, setOpen] = useState(false);
-  const selected = useMemo(() => parseDdMmYyyy(value), [value]);
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+  const [yearText, setYearText] = useState(String(initial.getFullYear()));
 
-  const [viewYear, setViewYear] = useState(() => (selected ?? max).getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => (selected ?? max).getMonth());
-
-  const openPicker = () => {
+  const toggleOpen = () => {
     if (disabled) return;
-    const base = selected ?? max;
+    const base = parseDdMmYyyy(value) ?? max;
     setViewYear(base.getFullYear());
     setViewMonth(base.getMonth());
-    setOpen(true);
+    setYearText(String(base.getFullYear()));
+    setOpen((v) => !v);
   };
 
-  const canGoNextMonth = () => {
-    const next = new Date(viewYear, viewMonth + 1, 1);
-    return next <= new Date(max.getFullYear(), max.getMonth(), 1);
+  const applyYearInput = (text: string) => {
+    setYearText(text);
+    const n = parseInt(text.replace(/\D/g, '').slice(0, 4), 10);
+    if (!Number.isNaN(n) && n >= MIN_YEAR && n <= maxYear) {
+      setViewYear(n);
+      if (n === maxYear && viewMonth > max.getMonth()) {
+        setViewMonth(max.getMonth());
+      }
+    }
   };
 
-  const goPrevMonth = () => {
-    const prev = new Date(viewYear, viewMonth - 1, 1);
-    if (prev.getFullYear() < 1900) return;
-    setViewYear(prev.getFullYear());
-    setViewMonth(prev.getMonth());
+  const stepMonth = (delta: number) => {
+    let y = viewYear;
+    let m = viewMonth + delta;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    } else if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    if (y < MIN_YEAR || y > maxYear) return;
+    if (y === maxYear && m > max.getMonth()) return;
+    setViewYear(y);
+    setViewMonth(m);
+    setYearText(String(y));
   };
 
-  const goNextMonth = () => {
-    if (!canGoNextMonth()) return;
-    const next = new Date(viewYear, viewMonth + 1, 1);
-    setViewYear(next.getFullYear());
-    setViewMonth(next.getMonth());
+  const stepYear = (delta: number) => {
+    const y = viewYear + delta;
+    if (y < MIN_YEAR || y > maxYear) return;
+    setViewYear(y);
+    setYearText(String(y));
+    if (y === maxYear && viewMonth > max.getMonth()) {
+      setViewMonth(max.getMonth());
+    }
   };
 
   const selectDay = (day: number) => {
-    const picked = new Date(viewYear, viewMonth, day);
-    onChange(picked);
-    setOpen(false);
+    try {
+      const picked = new Date(viewYear, viewMonth, day);
+      if (Number.isNaN(picked.getTime()) || picked > max) return;
+      onChange(picked);
+      setOpen(false);
+    } catch {
+      // abaikan — jangan crash
+    }
   };
 
   const leading = mondayIndexFirstDay(viewYear, viewMonth);
-  const totalDays = daysInMonth(viewYear, viewMonth);
+  const total = daysInMonth(viewYear, viewMonth);
   const cells: (number | null)[] = [
     ...Array.from({ length: leading }, () => null),
-    ...Array.from({ length: totalDays }, (_, i) => i + 1),
+    ...Array.from({ length: total }, (_, i) => i + 1),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  const monthLabel = MONTHS_ID[viewMonth] ?? '';
+  const atMaxMonth = viewYear === maxYear && viewMonth >= max.getMonth();
+  const atMinYear = viewYear <= MIN_YEAR;
+  const atMaxYear = viewYear >= maxYear;
 
   return (
     <View style={styles.wrapper}>
@@ -146,27 +186,22 @@ export function DatePickerField({
           styles.box,
           {
             backgroundColor: c.surface,
-            borderColor: error ? c.error : c.outlineVariant,
+            borderColor: error ? c.error : open ? c.primary : c.outlineVariant,
           },
         ]}
-        onPress={openPicker}
+        onPress={toggleOpen}
         disabled={disabled}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
         accessibilityRole="button"
-        accessibilityLabel={
-          value ? `${label} ${value}, ketuk untuk mengubah` : `${label}, ketuk untuk memilih`
-        }
+        accessibilityLabel={value ? `${label} ${value}` : `${label}, pilih tanggal`}
       >
         <Text
-          style={[
-            styles.valueText,
-            { color: value ? c.onSurface : c.outline },
-          ]}
+          style={[styles.valueText, { color: value ? c.onSurface : c.outline }]}
           numberOfLines={1}
         >
           {value || placeholder}
         </Text>
-        <Ionicons name="calendar-outline" size={20} color={c.primary} />
+        <Text style={[styles.chevron, { color: c.primary }]}>{open ? '▴' : '▾'}</Text>
       </TouchableOpacity>
 
       {error ? (
@@ -175,73 +210,102 @@ export function DatePickerField({
         <Text style={[styles.hint, { color: c.onSurfaceVariant }]}>{hint}</Text>
       ) : null}
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: c.surface,
-                borderColor: c.cardBorder,
-                shadowColor: c.primaryDeep,
-              },
-            ]}
-            accessibilityRole="dialog"
-            accessibilityLabel="Pilih tanggal"
-          >
-            <View style={styles.monthHeader}>
-              <TouchableOpacity
-                onPress={goPrevMonth}
-                style={styles.monthNav}
-                accessibilityRole="button"
-                accessibilityLabel="Bulan sebelumnya"
-              >
-                <Ionicons name="chevron-back" size={22} color={c.primary} />
-              </TouchableOpacity>
-              <Text style={[styles.monthTitle, { color: c.onSurface }]}>
-                {MONTHS_ID[viewMonth]} {viewYear}
+      {open ? (
+        <View
+          style={[styles.panel, { backgroundColor: c.surface, borderColor: c.outlineVariant }]}
+        >
+          {/* Bulan */}
+          <View style={styles.navRow}>
+            <TouchableOpacity
+              onPress={() => stepMonth(-1)}
+              style={styles.navBtn}
+              disabled={viewYear <= MIN_YEAR && viewMonth <= 0}
+              accessibilityRole="button"
+              accessibilityLabel="Bulan sebelumnya"
+            >
+              <Text style={[styles.navBtnText, { color: c.primary }]}>‹</Text>
+            </TouchableOpacity>
+            <Text style={[styles.navTitle, { color: c.onSurface }]}>
+              {monthLabel} {viewYear}
+            </Text>
+            <TouchableOpacity
+              onPress={() => stepMonth(1)}
+              style={[styles.navBtn, atMaxMonth && styles.navBtnOff]}
+              disabled={atMaxMonth}
+              accessibilityRole="button"
+              accessibilityLabel="Bulan berikutnya"
+            >
+              <Text style={[styles.navBtnText, { color: c.primary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Tahun — bisa diketik (memudahkan pilih tahun lahir) */}
+          <View style={styles.yearRow}>
+            <TouchableOpacity
+              onPress={() => stepYear(-1)}
+              style={styles.navBtn}
+              disabled={atMinYear}
+              accessibilityRole="button"
+              accessibilityLabel="Tahun sebelumnya"
+            >
+              <Text style={[styles.navBtnText, { color: c.primary }]}>‹</Text>
+            </TouchableOpacity>
+            <TextInput
+              value={yearText}
+              onChangeText={applyYearInput}
+              keyboardType="number-pad"
+              maxLength={4}
+              style={[
+                styles.yearInput,
+                { color: c.onSurface, borderColor: c.outlineVariant, backgroundColor: c.surfaceSoft },
+              ]}
+              accessibilityLabel="Tahun lahir"
+              placeholder="Tahun"
+              placeholderTextColor={c.outline}
+            />
+            <TouchableOpacity
+              onPress={() => stepYear(1)}
+              style={[styles.navBtn, atMaxYear && styles.navBtnOff]}
+              disabled={atMaxYear}
+              accessibilityRole="button"
+              accessibilityLabel="Tahun berikutnya"
+            >
+              <Text style={[styles.navBtnText, { color: c.primary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Header hari */}
+          <View style={styles.weekRow}>
+            {WEEKDAYS_ID.map((d) => (
+              <Text key={d} style={[styles.weekday, { color: c.onSurfaceVariant }]}>
+                {d}
               </Text>
-              <TouchableOpacity
-                onPress={goNextMonth}
-                style={[styles.monthNav, !canGoNextMonth() && styles.monthNavDisabled]}
-                disabled={!canGoNextMonth()}
-                accessibilityRole="button"
-                accessibilityLabel="Bulan berikutnya"
-              >
-                <Ionicons name="chevron-forward" size={22} color={c.primary} />
-              </TouchableOpacity>
-            </View>
+            ))}
+          </View>
 
-            <View style={styles.weekRow}>
-              {WEEKDAYS_ID.map((d) => (
-                <Text key={d} style={[styles.weekday, { color: c.onSurfaceVariant }]}>
-                  {d}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.grid}>
-              {cells.map((day, index) => {
+          {/* Grid hari — per baris minggu, flex:1 tanpa % width */}
+          {weeks.map((week, wi) => (
+            <View key={`w-${wi}`} style={styles.weekRow}>
+              {week.map((day, di) => {
                 if (day == null) {
-                  return <View key={`empty-${index}`} style={styles.dayCell} />;
+                  return <View key={`e-${wi}-${di}`} style={styles.dayCell} />;
                 }
                 const date = new Date(viewYear, viewMonth, day);
-                const isSelected = selected != null && isSameDay(date, selected);
+                const isSelected = parsed != null && isSameDay(date, parsed);
                 const isToday = isSameDay(date, new Date());
                 const isFuture = date > max;
                 return (
                   <TouchableOpacity
-                    key={day}
+                    key={`d-${wi}-${di}`}
                     style={[
                       styles.dayCell,
-                      isToday && { borderWidth: 1.5, borderColor: c.primary },
-                      isSelected && { backgroundColor: c.primary },
+                      isSelected && { backgroundColor: c.primary, borderRadius: 20 },
+                      !isSelected && isToday && { borderWidth: 1.5, borderColor: c.primary, borderRadius: 20 },
                     ]}
                     onPress={() => selectDay(day)}
                     disabled={isFuture}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected, disabled: isFuture }}
-                    accessibilityLabel={`${day} ${MONTHS_ID[viewMonth]} ${viewYear}`}
+                    accessibilityLabel={`${day} ${monthLabel} ${viewYear}`}
                   >
                     <Text
                       style={[
@@ -264,18 +328,23 @@ export function DatePickerField({
                 );
               })}
             </View>
+          ))}
 
+          <View style={[styles.footer, { borderTopColor: c.outlineVariant }]}>
+            <Text style={[styles.footerText, { color: c.onSurfaceVariant }]}>
+              {parsed ? `Terpilih: ${formatDdMmYyyy(parsed)}` : 'Ketuk tanggal untuk memilih'}
+            </Text>
             <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: c.surfaceSoft }]}
               onPress={() => setOpen(false)}
+              style={[styles.doneBtn, { backgroundColor: c.primary }]}
               accessibilityRole="button"
-              accessibilityLabel="Tutup kalender"
+              accessibilityLabel="Selesai"
             >
-              <Text style={[styles.closeButtonText, { color: c.primary }]}>Tutup</Text>
+              <Text style={[styles.doneBtnText, { color: c.onPrimary }]}>Selesai</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      ) : null}
     </View>
   );
 }
@@ -292,40 +361,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   valueText: { flex: 1, fontSize: 15 },
+  chevron: { fontSize: 16, fontWeight: '700', paddingHorizontal: 4 },
   error: { fontSize: 12, marginTop: 6, fontWeight: '500' },
   hint: { fontSize: 12, marginTop: 6 },
 
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+  panel: {
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 10,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  navBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    alignItems: 'center',
   },
-  modalCard: {
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    elevation: 8,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-  },
-  monthHeader: {
+  navBtnOff: { opacity: 0.35 },
+  navBtnText: { fontSize: 26, fontWeight: '700', lineHeight: 28 },
+  navTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700' },
+
+  yearRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  monthNav: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 22,
+  yearInput: {
+    flex: 1,
+    minHeight: 40,
+    marginHorizontal: 8,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
   },
-  monthNavDisabled: { opacity: 0.3 },
-  monthTitle: { fontSize: 16, fontWeight: '700' },
-  weekRow: { flexDirection: 'row', marginBottom: 4 },
+
+  weekRow: { flexDirection: 'row' },
   weekday: {
     flex: 1,
     textAlign: 'center',
@@ -333,21 +414,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     paddingVertical: 6,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
+    flex: 1,
+    minHeight: 40,
+    margin: 2,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 20,
   },
   dayText: { fontSize: 14 },
-  closeButton: {
-    marginTop: 12,
-    minHeight: 44,
-    borderRadius: 12,
+
+  footer: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  footerText: { flex: 1, fontSize: 12, marginRight: 8 },
+  doneBtn: {
+    minHeight: 40,
+    paddingHorizontal: 18,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: { fontSize: 14, fontWeight: '700' },
+  doneBtnText: { fontSize: 13, fontWeight: '700' },
 });
