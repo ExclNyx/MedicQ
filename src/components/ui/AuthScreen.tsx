@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -14,7 +14,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -24,10 +23,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '../../core/theme/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
 
+/** Objek yang punya measureInWindow (instance TextInput). */
+export interface MeasureTarget {
+  measureInWindow?: (
+    callback: (x: number, y: number, width: number, height: number) => void
+  ) => void;
+}
+
 /** Ruang kosong (px) yang dijaga di bawah kolom aktif, supaya pesan error/hint ikut terlihat. */
 const SPACE_BELOW_FIELD = 64;
 
-const ScrollToFocusedContext = createContext<() => void>(() => {});
+const ScrollToFocusedContext = createContext<(input?: MeasureTarget | null) => void>(() => {});
 
 /** Dipanggil kolom isian saat difokuskan, supaya layar menggulir dan kolomnya tidak tertutup keyboard. */
 export function useScrollToFocusedInput() {
@@ -72,6 +78,8 @@ export function AuthScreen({
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const keyboardTop = useRef<number | null>(null);
+  /** Input terakhir yang di-focus — dipakai ulang saat keyboard muncul. */
+  const lastInputRef = useRef<MeasureTarget | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const heroColors = useMemo(
@@ -79,13 +87,21 @@ export function AuthScreen({
     [c.primaryDeep, c.primary, c.primarySoft]
   );
 
-  const scrollFocusedIntoView = useCallback(() => {
+  /**
+   * Gulir agar kolom aktif terlihat di atas keyboard.
+   * Tidak memakai TextInput.State.currentlyFocusedInput() — API itu bisa
+   * undefined di beberapa runtime RN/Expo dan bikin crash saat fokus.
+   * Kolom meneruskan ref-nya sendiri lewat context.
+   */
+  const scrollFocusedIntoView = useCallback((input?: MeasureTarget | null) => {
+    const target = input ?? lastInputRef.current;
+    if (target) lastInputRef.current = target;
+
     const top = keyboardTop.current;
-    const input = TextInput.State.currentlyFocusedInput();
-    if (top === null || !input) return;
+    if (top === null || !target || typeof target.measureInWindow !== 'function') return;
 
     try {
-      input.measureInWindow((_x, y, _width, height) => {
+      target.measureInWindow((_x, y, _width, height) => {
         const overlap = y + height + SPACE_BELOW_FIELD - top;
         if (overlap > 0) {
           scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
@@ -100,7 +116,7 @@ export function AuthScreen({
     const show = Keyboard.addListener('keyboardDidShow', (event) => {
       keyboardTop.current = event.endCoordinates.screenY;
       setKeyboardHeight(event.endCoordinates.height);
-      setTimeout(scrollFocusedIntoView, 100);
+      setTimeout(() => scrollFocusedIntoView(), 100);
     });
     const hide = Keyboard.addListener('keyboardDidHide', () => {
       keyboardTop.current = null;
@@ -112,8 +128,11 @@ export function AuthScreen({
     };
   }, [scrollFocusedIntoView]);
 
+  // Pindah antar kolom (tombol next): gulir lagi ke input terakhir/terbaru.
   const scrollOnFocus = useMemo(
-    () => () => setTimeout(scrollFocusedIntoView, 150),
+    () => (input?: MeasureTarget | null) => {
+      setTimeout(() => scrollFocusedIntoView(input), 150);
+    },
     [scrollFocusedIntoView]
   );
 

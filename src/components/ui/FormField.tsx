@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -21,6 +21,7 @@ interface FormFieldProps extends TextInputProps {
 /**
  * Kolom isian dengan label, border biru saat fokus, border merah saat error.
  * Kalau `secureTextEntry` diberikan, tombol Lihat/Sembunyikan muncul otomatis.
+ * Saat fokus, meneruskan ref ke AuthScreen untuk scroll-into-view (tanpa TextInput.State).
  */
 export const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
   { label, error, hint, multiline, secureTextEntry, onFocus, onBlur, style, ...inputProps },
@@ -31,6 +32,16 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
   const [hidden, setHidden] = useState(true);
   const isPassword = !!secureTextEntry;
   const scrollToFocusedInput = useScrollToFocusedInput();
+  const innerRef = useRef<TextInput | null>(null);
+
+  const setInputRef = (node: TextInput | null) => {
+    innerRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref && typeof ref === 'object') {
+      (ref as { current: TextInput | null }).current = node;
+    }
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -46,16 +57,10 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
           },
         ]}
       >
-        {/* inputProps di bawah dulu, handler custom di atas supaya tidak tertimpa */}
         <TextInput
-          ref={ref}
+          ref={setInputRef}
           {...inputProps}
-          style={[
-            styles.input,
-            multiline && styles.inputMulti,
-            { color: c.onSurface },
-            style,
-          ]}
+          style={[styles.input, multiline && styles.inputMulti, { color: c.onSurface }, style]}
           placeholderTextColor={c.outline}
           accessibilityLabel={label}
           multiline={multiline}
@@ -64,7 +69,7 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
             setFocused(true);
             onFocus?.(event);
             try {
-              scrollToFocusedInput();
+              scrollToFocusedInput(innerRef.current);
             } catch {
               // abaikan bila measure gagal — keyboard tetap boleh terbuka
             }
