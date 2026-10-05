@@ -18,8 +18,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../core/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '../../core/theme/ThemeContext';
+import { ThemeToggle } from './ThemeToggle';
 
 /** Ruang kosong (px) yang dijaga di bawah kolom aktif, supaya pesan error/hint ikut terlihat. */
 const SPACE_BELOW_FIELD = 64;
@@ -31,6 +34,13 @@ export function useScrollToFocusedInput() {
   return useContext(ScrollToFocusedContext);
 }
 
+interface AuthBrand {
+  name: string;
+  tagline?: string;
+  /** Logo kustom; default = ikon cross MedicQueue */
+  logo?: ReactNode;
+}
+
 interface AuthScreenProps {
   title: string;
   subtitle?: string;
@@ -38,41 +48,58 @@ interface AuthScreenProps {
   step?: { current: number; total: number };
   /** Kalau diisi, tombol "Kembali" muncul di header */
   onBack?: () => void;
+  /** Branding di hero (logo + nama app + tagline) — dipakai layar login */
+  brand?: AuthBrand;
+  /** Error form-level (bukan per-field), tampil di atas isi kartu */
+  error?: string | null;
   children: ReactNode;
 }
 
 /**
- * Kerangka layar untuk alur akun (register, lengkapi data diri):
- * header biru + kartu putih di bawahnya, sama gayanya dengan layar login.
- *
- * Keyboard: layar ini mengatur sendiri agar kolom yang sedang diisi selalu
- * terangkat di atas keyboard (di Android edge-to-edge KeyboardAvoidingView tidak cukup).
+ * Kerangka layar untuk alur akun: hero gradasi + kartu, mendukung dark mode.
  */
-export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScreenProps) {
+export function AuthScreen({
+  title,
+  subtitle,
+  step,
+  onBack,
+  brand,
+  error,
+  children,
+}: AuthScreenProps) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
-  const keyboardTop = useRef<number | null>(null); // posisi atas keyboard di layar, null saat tertutup
+  const keyboardTop = useRef<number | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const heroColors = useMemo(
+    () => [c.primaryDeep, c.primary, c.primarySoft] as const,
+    [c.primaryDeep, c.primary, c.primarySoft]
+  );
 
   const scrollFocusedIntoView = useCallback(() => {
     const top = keyboardTop.current;
     const input = TextInput.State.currentlyFocusedInput();
     if (top === null || !input) return;
 
-    input.measureInWindow((_x, y, _width, height) => {
-      const overlap = y + height + SPACE_BELOW_FIELD - top;
-      if (overlap > 0) {
-        scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
-      }
-    });
+    try {
+      input.measureInWindow((_x, y, _width, height) => {
+        const overlap = y + height + SPACE_BELOW_FIELD - top;
+        if (overlap > 0) {
+          scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
+        }
+      });
+    } catch {
+      // jangan sampai error native memblokir interaksi form
+    }
   }, []);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', (event) => {
       keyboardTop.current = event.endCoordinates.screenY;
       setKeyboardHeight(event.endCoordinates.height);
-      // beri waktu agar ruang tambahan di bawah konten sudah terpasang
       setTimeout(scrollFocusedIntoView, 100);
     });
     const hide = Keyboard.addListener('keyboardDidHide', () => {
@@ -85,12 +112,16 @@ export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScre
     };
   }, [scrollFocusedIntoView]);
 
-  // Pindah antar kolom saat keyboard sudah terbuka (tombol "next"): gulir lagi.
-  const scrollOnFocus = useMemo(() => () => setTimeout(scrollFocusedIntoView, 150), [scrollFocusedIntoView]);
+  const scrollOnFocus = useMemo(
+    () => () => setTimeout(scrollFocusedIntoView, 150),
+    [scrollFocusedIntoView]
+  );
+
+  const stepPercent = step ? Math.round((step.current / step.total) * 100) : 0;
 
   return (
     <ScrollToFocusedContext.Provider value={scrollOnFocus}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: c.background }]}>
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={[
@@ -104,8 +135,13 @@ export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScre
           }}
           scrollEventThrottle={16}
         >
-          <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-            <View style={styles.inner}>
+          <LinearGradient
+            colors={heroColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[styles.hero, { paddingTop: insets.top + 12 }]}
+          >
+            <View style={styles.headerRow}>
               {onBack ? (
                 <TouchableOpacity
                   onPress={onBack}
@@ -113,24 +149,78 @@ export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScre
                   accessibilityRole="button"
                   accessibilityLabel="Kembali"
                 >
-                  <Text style={styles.backText}>‹  Kembali</Text>
+                  <View style={styles.backRow}>
+                    <Ionicons name="chevron-back" size={20} color={c.onPrimary} />
+                    <Text style={[styles.backText, { color: c.onPrimary }]}>Kembali</Text>
+                  </View>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.backSpacer} />
               )}
+              <ThemeToggle />
+            </View>
+
+            <View style={styles.inner}>
+              {brand && (
+                <View style={styles.brand}>
+                  <View
+                    style={styles.logo}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    {brand.logo ?? (
+                      <>
+                        <View style={styles.crossVertical} />
+                        <View style={styles.crossHorizontal} />
+                      </>
+                    )}
+                  </View>
+                  <Text style={[styles.appName, { color: c.onPrimary }]}>{brand.name}</Text>
+                  {brand.tagline ? (
+                    <Text style={[styles.tagline, { color: c.onPrimaryMuted }]}>{brand.tagline}</Text>
+                  ) : null}
+                </View>
+              )}
 
               {step && (
-                <Text style={styles.step}>
-                  Langkah {step.current} dari {step.total}
-                </Text>
+                <View style={styles.stepBlock}>
+                  <Text style={[styles.step, { color: c.onPrimaryMuted }]}>
+                    Langkah {step.current} dari {step.total}
+                  </Text>
+                  <View style={styles.stepTrack}>
+                    <View
+                      style={[styles.stepFill, { width: `${stepPercent}%`, backgroundColor: c.onPrimary }]}
+                    />
+                  </View>
+                </View>
               )}
-              <Text style={styles.title}>{title}</Text>
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              <Text style={[styles.title, { color: c.onPrimary }]}>{title}</Text>
+              {subtitle ? (
+                <Text style={[styles.subtitle, { color: c.onPrimaryMuted }]}>{subtitle}</Text>
+              ) : null}
             </View>
-          </View>
+          </LinearGradient>
 
           <View style={styles.content}>
-            <View style={styles.card}>{children}</View>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: c.surface, borderColor: c.cardBorder },
+              ]}
+            >
+              {error ? (
+                <View
+                  style={[
+                    styles.errorBox,
+                    { backgroundColor: c.errorContainer, borderColor: c.error },
+                  ]}
+                  accessibilityRole="alert"
+                >
+                  <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
+                </View>
+              ) : null}
+              {children}
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -139,14 +229,20 @@ export function AuthScreen({ title, subtitle, step, onBack, children }: AuthScre
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   scroll: { flexGrow: 1 },
 
   hero: {
-    backgroundColor: Colors.primary,
     paddingBottom: 64,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
   inner: {
     width: '100%',
@@ -155,11 +251,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   back: { alignSelf: 'flex-start', minWidth: 110, minHeight: 44, justifyContent: 'center' },
-  backSpacer: { height: 12 },
-  backText: { fontSize: 15, fontWeight: '600', color: Colors.onPrimary },
-  step: { fontSize: 12, fontWeight: '600', color: Colors.primaryContainer, marginTop: 4 },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.onPrimary, marginTop: 4 },
-  subtitle: { fontSize: 14, lineHeight: 20, color: Colors.primaryContainer, marginTop: 6 },
+  backSpacer: { width: 110, height: 44 },
+  backRow: { flexDirection: 'row', alignItems: 'center' },
+  backText: { fontSize: 15, fontWeight: '600', marginLeft: 2 },
+
+  brand: { alignItems: 'center', marginBottom: 12, marginTop: 8 },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  crossVertical: {
+    position: 'absolute',
+    width: 14,
+    height: 40,
+    borderRadius: 4,
+    backgroundColor: '#1565C0',
+  },
+  crossHorizontal: {
+    position: 'absolute',
+    width: 40,
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: '#1565C0',
+  },
+  appName: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  tagline: {
+    fontSize: 14,
+    marginTop: 4,
+    paddingHorizontal: 24,
+    textAlign: 'center',
+  },
+
+  stepBlock: { marginTop: 4 },
+  step: { fontSize: 12, fontWeight: '600' },
+  stepTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  stepFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  title: { fontSize: 24, fontWeight: '800', marginTop: 12 },
+  subtitle: { fontSize: 14, lineHeight: 20, marginTop: 6 },
+
+  errorBox: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  errorText: { fontSize: 13, fontWeight: '600' },
 
   content: {
     width: '100%',
@@ -169,13 +324,8 @@ const styles = StyleSheet.create({
     marginTop: -40,
   },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
-    elevation: 3,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    borderWidth: 1,
   },
 });

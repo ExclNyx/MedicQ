@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import { forwardRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,7 +7,7 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
-import { Colors } from '../../core/constants/colors';
+import { useColors } from '../../core/theme/ThemeContext';
 import { useScrollToFocusedInput } from './AuthScreen';
 
 interface FormFieldProps extends TextInputProps {
@@ -26,6 +26,7 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
   { label, error, hint, multiline, secureTextEntry, onFocus, onBlur, style, ...inputProps },
   ref
 ) {
+  const c = useColors();
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(true);
   const isPassword = !!secureTextEntry;
@@ -33,33 +34,45 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: c.onSurfaceVariant }]}>{label}</Text>
 
       <View
         style={[
           styles.box,
           multiline && styles.boxMulti,
-          focused && styles.boxFocused,
-          !!error && styles.boxError,
+          {
+            backgroundColor: c.surface,
+            borderColor: error ? c.error : focused ? c.primary : c.outlineVariant,
+          },
         ]}
       >
+        {/* inputProps di bawah dulu, handler custom di atas supaya tidak tertimpa */}
         <TextInput
           ref={ref}
-          style={[styles.input, multiline && styles.inputMulti, style]}
-          placeholderTextColor={Colors.outline}
+          {...inputProps}
+          style={[
+            styles.input,
+            multiline && styles.inputMulti,
+            { color: c.onSurface },
+            style,
+          ]}
+          placeholderTextColor={c.outline}
           accessibilityLabel={label}
           multiline={multiline}
           secureTextEntry={isPassword ? hidden : false}
           onFocus={(event) => {
             setFocused(true);
             onFocus?.(event);
-            scrollToFocusedInput();
+            try {
+              scrollToFocusedInput();
+            } catch {
+              // abaikan bila measure gagal — keyboard tetap boleh terbuka
+            }
           }}
           onBlur={(event) => {
             setFocused(false);
             onBlur?.(event);
           }}
-          {...inputProps}
         />
 
         {isPassword && (
@@ -69,17 +82,19 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
             accessibilityRole="button"
             accessibilityLabel={hidden ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi'}
           >
-            <Text style={styles.toggleText}>{hidden ? 'Lihat' : 'Sembunyikan'}</Text>
+            <Text style={[styles.toggleText, { color: c.primary }]}>
+              {hidden ? 'Lihat' : 'Sembunyikan'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
 
       {error ? (
-        <Text style={styles.error} accessibilityRole="alert">
+        <Text style={[styles.error, { color: c.error }]} accessibilityRole="alert">
           {error}
         </Text>
       ) : hint ? (
-        <Text style={styles.hint}>{hint}</Text>
+        <Text style={[styles.hint, { color: c.onSurfaceVariant }]}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -87,29 +102,24 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
 
 const styles = StyleSheet.create({
   wrapper: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   box: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.outlineVariant,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    borderRadius: 14,
   },
   boxMulti: { alignItems: 'flex-start' },
-  boxFocused: { borderColor: Colors.primary },
-  boxError: { borderColor: Colors.error },
   input: {
     flex: 1,
     minHeight: 48,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: Colors.onSurface,
   },
   inputMulti: { minHeight: 88, paddingTop: 12, textAlignVertical: 'top' },
   toggle: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },
-  toggleText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
-  error: { fontSize: 12, color: Colors.error, marginTop: 6 },
-  hint: { fontSize: 12, color: Colors.onSurfaceVariant, marginTop: 6 },
+  toggleText: { fontSize: 13, fontWeight: '700' },
+  error: { fontSize: 12, marginTop: 6, fontWeight: '500' },
+  hint: { fontSize: 12, marginTop: 6 },
 });

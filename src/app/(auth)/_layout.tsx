@@ -1,14 +1,13 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../core/constants/colors';
+import { useColors } from '../../core/theme/ThemeContext';
 
-// Semua layar di folder (auth) menggambar header-nya sendiri (lihat AuthScreen),
-// jadi header bawaan navigasi dimatikan supaya tampilannya seragam dengan login.
 export default function AuthLayout() {
+  const c = useColors();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.background },
+        contentStyle: { backgroundColor: c.background },
       }}
     >
       <Stack.Screen name="login" />

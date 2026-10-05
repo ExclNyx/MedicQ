@@ -1,6 +1,6 @@
-import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Colors } from '../../core/constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '../../core/theme/ThemeContext';
 
 interface PrimaryButtonProps {
   label: string;
@@ -9,13 +9,21 @@ interface PrimaryButtonProps {
   disabled?: boolean;
 }
 
-/** Tombol utama (biru, tinggi 52px) dengan indikator loading. */
+/**
+ * Tombol utama — gradasi native + shadow lembut, mendukung dark mode.
+ */
 export function PrimaryButton({ label, onPress, loading = false, disabled = false }: PrimaryButtonProps) {
+  const c = useColors();
   const inactive = loading || disabled;
+  const buttonColors = [c.primaryLight, c.primary, c.primaryDeep] as const;
 
   return (
     <TouchableOpacity
-      style={[styles.button, inactive && styles.buttonInactive]}
+      style={[
+        styles.touch,
+        inactive && styles.touchInactive,
+        { shadowColor: c.primaryDeep },
+      ]}
       onPress={onPress}
       activeOpacity={0.85}
       disabled={inactive}
@@ -23,29 +31,43 @@ export function PrimaryButton({ label, onPress, loading = false, disabled = fals
       accessibilityLabel={label}
       accessibilityState={{ disabled: inactive, busy: loading }}
     >
-      {loading ? (
-        <ActivityIndicator color={Colors.onPrimary} />
-      ) : (
-        <Text style={styles.text}>{label}</Text>
-      )}
+      <LinearGradient
+        colors={buttonColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.gradient}
+      >
+        {loading ? (
+          <ActivityIndicator color={c.onPrimary} />
+        ) : (
+          <Text style={[styles.text, { color: c.onPrimary }]}>{label}</Text>
+        )}
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
+  touch: {
     minHeight: 52,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  touchInactive: { opacity: 0.7 },
+  gradient: {
+    minHeight: 52,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'stretch',
   },
-  buttonInactive: { opacity: 0.7 },
   text: {
     alignSelf: 'stretch',
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.onPrimary,
   },
 });

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "shadcn-ui": {
+      "source": "capraidev/shadcn-claude-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "51d16b286581ac7ecef35b0f7e415a525ea94566c370fee7ba3348aae7f616d6"
+    },
+    "ui-refactor": {
+      "source": "lovropodobnik/refactoring-ui-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-refactor/SKILL.md",
+      "computedHash": "7936dbea76cbc360338b58745edf8f6bd0242a050b16057848ac1df2ad8aac51"
+    }
+  }
+}
