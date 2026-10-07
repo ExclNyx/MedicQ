@@ -1,79 +1,358 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Colors } from '../../core/constants/colors';
+import { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DatePickerField } from '../../components/ui/DatePickerField';
+import { FormField } from '../../components/ui/FormField';
+import { OutlineButton } from '../../components/ui/OutlineButton';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { StaffHeader } from '../../components/ui/StaffHeader';
+import type { Gender } from '../../core/models';
+import { useColors } from '../../core/theme/ThemeContext';
+
+type Values = {
+  nik: string;
+  fullName: string;
+  address: string;
+  phone: string;
+};
+
+type Errors = Partial<Record<keyof Values | 'dob' | 'gender', string>>;
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'male', label: 'Laki-laki' },
+  { value: 'female', label: 'Perempuan' },
+];
+
+function formatDobId(value: string): string {
+  // DatePickerField memakai format DD-MM-YYYY
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value || '');
+  if (!match) return value;
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = match[3];
+  if (month < 1 || month > 12) return value;
+  return `${day} ${months[month - 1]} ${year}`;
+}
 
 export default function ManualRegisterScreen() {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+
   const [searchNik, setSearchNik] = useState('');
-  
-  const handleSearch = () => {
-    Alert.alert('Simulasi UI', 'Fitur pencarian hanya tersedia saat database terkoneksi.');
+  const [values, setValues] = useState<Values>({
+    nik: '',
+    fullName: '',
+    address: '',
+    phone: '',
+  });
+  const [dob, setDob] = useState(''); // DD-MM-YYYY
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [errors, setErrors] = useState<Errors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const setValue = (key: keyof Values, value: string) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  const handleRegisterNew = () => {
-    router.replace('/(staff)/patient-detail');
+  const handleSearch = () => {
+    if (!/^\d{16}$/.test(searchNik)) {
+      Alert.alert('NIK tidak valid', 'Masukkan 16 digit angka NIK.');
+      return;
+    }
+    Alert.alert('UI Demo', 'Pencarian pasien lama membutuhkan koneksi Firestore.');
+  };
+
+  const validate = (): Errors => {
+    const found: Errors = {};
+    if (!/^\d{16}$/.test(values.nik)) found.nik = 'NIK harus 16 digit angka.';
+    if (values.fullName.trim().length < 3) found.fullName = 'Isi nama lengkap pasien.';
+    if (!dob) found.dob = 'Tanggal lahir belum dipilih.';
+    if (!gender) found.gender = 'Pilih jenis kelamin.';
+    if (values.address.trim().length < 5) found.address = 'Isi alamat dengan lengkap.';
+    return found;
+  };
+
+  const handleSubmit = () => {
+    const found = validate();
+    setErrors(found);
+    setFormError(null);
+    if (Object.keys(found).length > 0) return;
+
+    Alert.alert(
+      'Registrasi Manual (UI Demo)',
+      `Pasien ${values.fullName} disimpan.\n\nSetelah pilih keluhan & poli, nomor antrean langsung terbit (status QUEUED, tanpa verifikasi).`,
+      [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }],
+    );
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Cari Pasien Lama</Text>
-        <Text style={styles.label}>Masukkan NIK</Text>
-        <View style={styles.searchRow}>
-          <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={searchNik} onChangeText={setSearchNik} placeholder="16 digit NIK" keyboardType="numeric" maxLength={16} />
-          <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-            <Text style={styles.searchBtnText}>CARI</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={[styles.flex, { backgroundColor: c.background }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingBottom: 32 + insets.bottom }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <StaffHeader
+            title="Registrasi Manual"
+            subtitle="Untuk pasien yang tidak memakai aplikasi"
+          />
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Daftar Pasien Baru (Manual)</Text>
-        <Text style={styles.label}>NIK *</Text>
-        <TextInput style={styles.input} keyboardType="numeric" />
+          <View style={styles.body}>
+            {formError ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: c.errorContainer, borderColor: c.error },
+                ]}
+                accessibilityRole="alert"
+              >
+                <Ionicons name="alert-circle-outline" size={16} color={c.error} />
+                <Text style={[styles.errorText, { color: c.error }]}>{formError}</Text>
+              </View>
+            ) : null}
 
-        <Text style={styles.label}>Nama Lengkap *</Text>
-        <TextInput style={styles.input} />
+            {/* Cari pasien lama */}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: c.surface, borderColor: c.cardBorder },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: c.onSurface }]}>
+                Pasien Lama
+              </Text>
+              <Text style={[styles.cardDesc, { color: c.onSurfaceVariant }]}>
+                Cari berdasarkan NIK bila pasien sudah terdaftar sebelumnya.
+              </Text>
+              <FormField
+                label="NIK"
+                value={searchNik}
+                onChangeText={setSearchNik}
+                placeholder="16 digit NIK"
+                keyboardType="numeric"
+                maxLength={16}
+              />
+              <OutlineButton
+                label="CARI PASIEN"
+                icon="search-outline"
+                onPress={handleSearch}
+              />
+            </View>
 
-        <Text style={styles.label}>Tanggal Lahir (YYYY-MM-DD) *</Text>
-        <TextInput style={styles.input} keyboardType="numeric" />
+            {/* Form pasien baru */}
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: c.surface, borderColor: c.cardBorder },
+              ]}
+            >
+              <Text style={[styles.cardTitle, { color: c.onSurface }]}>
+                Pasien Baru
+              </Text>
+              <Text style={[styles.cardDesc, { color: c.onSurfaceVariant }]}>
+                Isi data diri sesuai KTP. Registrasi manual langsung masuk antrean
+                setelah poli ditentukan.
+              </Text>
 
-        <Text style={styles.label}>Jenis Kelamin</Text>
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-          <TouchableOpacity style={[styles.genderBtn, styles.genderActive]}>
-            <Text style={{color: Colors.primary}}>Laki-laki</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.genderBtn}>
-            <Text>Perempuan</Text>
-          </TouchableOpacity>
-        </View>
+              <FormField
+                label="NIK *"
+                value={values.nik}
+                onChangeText={(t) => setValue('nik', t.replace(/\D/g, ''))}
+                placeholder="16 digit angka"
+                keyboardType="numeric"
+                maxLength={16}
+                error={errors.nik}
+              />
 
-        <Text style={styles.label}>Alamat *</Text>
-        <TextInput style={styles.input} />
+              <FormField
+                label="Nama Lengkap *"
+                value={values.fullName}
+                onChangeText={(t) => setValue('fullName', t)}
+                placeholder="Sesuai KTP"
+                error={errors.fullName}
+              />
 
-        <Text style={styles.label}>No. HP (Opsional)</Text>
-        <TextInput style={styles.input} keyboardType="phone-pad" />
+              <DatePickerField
+                label="Tanggal Lahir *"
+                value={dob}
+                onChange={(date) => {
+                  const pad = (n: number) => String(n).padStart(2, '0');
+                  setDob(`${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`);
+                  setErrors((prev) => ({ ...prev, dob: undefined }));
+                }}
+                error={errors.dob}
+                hint={dob ? `Terpilih: ${formatDobId(dob)}` : undefined}
+              />
 
-        <TouchableOpacity style={styles.btn} onPress={handleRegisterNew}>
-          <Text style={styles.btnText}>SIMPAN & DAFTAR KUNJUNGAN</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+              <View style={styles.group}>
+                <Text style={[styles.groupLabel, { color: c.onSurfaceVariant }]}>
+                  Jenis Kelamin *
+                </Text>
+                <View style={styles.genderRow} accessibilityRole="radiogroup">
+                  {GENDER_OPTIONS.map((option) => {
+                    const selected = gender === option.value;
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.genderOption,
+                          {
+                            backgroundColor: selected ? c.primaryContainer : c.surface,
+                            borderColor: selected ? c.primary : c.outlineVariant,
+                          },
+                        ]}
+                        onPress={() => {
+                          setGender(option.value);
+                          setErrors((prev) => ({ ...prev, gender: undefined }));
+                        }}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                      >
+                        <View
+                          style={[
+                            styles.radioOuter,
+                            { borderColor: selected ? c.primary : c.outlineVariant },
+                          ]}
+                        >
+                          {selected ? (
+                            <View
+                              style={[styles.radioInner, { backgroundColor: c.primary }]}
+                            />
+                          ) : null}
+                        </View>
+                        <Text
+                          style={[
+                            styles.genderText,
+                            {
+                              color: selected ? c.onPrimaryContainer : c.onSurface,
+                            },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {errors.gender ? (
+                  <Text style={[styles.groupError, { color: c.error }]}>
+                    {errors.gender}
+                  </Text>
+                ) : null}
+              </View>
+
+              <FormField
+                label="Alamat *"
+                value={values.address}
+                onChangeText={(t) => setValue('address', t)}
+                placeholder="Jalan, nomor, kelurahan, kota"
+                multiline
+                error={errors.address}
+              />
+
+              <FormField
+                label="No. HP (opsional)"
+                value={values.phone}
+                onChangeText={(t) => setValue('phone', t.replace(/[^\d+]/g, ''))}
+                placeholder="08xxxxxxxxxx"
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <PrimaryButton
+              label="SIMPAN & LANJUT KELUHAN"
+              onPress={handleSubmit}
+            />
+            <OutlineButton
+              label="Batal"
+              icon="close"
+              tone="danger"
+              onPress={() => router.back()}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: 20 },
-  card: { backgroundColor: Colors.surface, padding: 20, borderRadius: 16, elevation: 2, marginBottom: 20 },
-  title: { fontSize: 16, fontWeight: '700', color: Colors.onSurface, marginBottom: 16 },
-  searchRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  searchBtn: { backgroundColor: Colors.primary, paddingHorizontal: 20, height: 48, justifyContent: 'center', borderRadius: 10 },
-  searchBtnText: { color: Colors.onPrimary, fontWeight: '700' },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.onSurfaceVariant, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 10, paddingHorizontal: 14, height: 48, backgroundColor: Colors.grey100, marginBottom: 16 },
-  genderBtn: { flex: 1, padding: 12, borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 10, alignItems: 'center' },
-  genderActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer },
-  btn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: 'center' },
-  btnText: { color: Colors.onPrimary, fontWeight: '700', fontSize: 14 },
+  flex: { flex: 1 },
+  scroll: { flexGrow: 1 },
+  body: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    marginTop: -40,
+    gap: 16,
+  },
+
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  cardTitle: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  cardDesc: { fontSize: 12, lineHeight: 16, marginTop: 4, marginBottom: 14 },
+
+  group: { marginBottom: 4 },
+  groupLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  groupError: { fontSize: 12, marginTop: 6, fontWeight: '500' },
+  genderRow: { flexDirection: 'row', gap: 12 },
+  genderOption: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  radioOuter: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: { width: 8, height: 8, borderRadius: 4 },
+  genderText: { fontSize: 14, fontWeight: '600', flexShrink: 1 },
+
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  errorText: { fontSize: 13, fontWeight: '600', flex: 1 },
 });

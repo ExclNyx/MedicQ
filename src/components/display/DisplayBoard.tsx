@@ -1,9 +1,22 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { QueueModel, ServiceModel } from '../../core/models';
-import { Colors } from '../../core/constants/colors';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import type { QueueModel, ServiceModel } from '../../core/models';
 
 const { width, height } = Dimensions.get('window');
+const big = Math.min(width, height);
+
+// Warna display TV tetap (bukan dark-mode app): kontras tinggi dari jauh.
+const TV = {
+  bg: '#0D47A1',
+  headerBg: '#0A3A82',
+  nextBg: 'rgba(0,0,0,0.22)',
+  cardBg: 'rgba(255,255,255,0.14)',
+  cardBorder: 'rgba(255,255,255,0.32)',
+  onBg: '#FFFFFF',
+  muted: '#BBDEFB',
+  accent: '#FFFFFF',
+  bannerBg: '#FFFFFF',
+  bannerText: '#0D47A1',
+} as const;
 
 interface Props {
   service: ServiceModel | null;
@@ -11,77 +24,97 @@ interface Props {
   nextQueues: QueueModel[];
 }
 
-export const DisplayBoard: React.FC<Props> = ({ service, currentQueue, nextQueues }) => (
-  <View style={styles.container}>
-    {/* Header */}
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>PUSKESMAS</Text>
-      <Text style={styles.headerSubtitle}>{service?.name?.toUpperCase() ?? 'ANTREAN'}</Text>
-    </View>
+/**
+ * Papan antrean TV ruang tunggu (PRD F-D01–D03).
+ * Nomor dipanggil sangat besar; daftar berikutnya 5–10 nomor.
+ * Update realtime lewat props dari Firestore listener.
+ */
+export function DisplayBoard({ service, currentQueue, nextQueues }: Props) {
+  const serviceName = service?.name?.toUpperCase() ?? 'ANTREAN';
+  const next = nextQueues.slice(0, 10);
 
-    {/* Main number */}
-    <View style={styles.mainSection}>
-      {currentQueue ? (
-        <>
-          <Text style={styles.nowServing}>NOMOR YANG DIPANGGIL</Text>
-          <Text style={styles.bigNumber}>{currentQueue.queueNumber}</Text>
-          <View style={styles.callBanner}>
-            <Text style={styles.callText}>📢 SILAKAN MENUJU {service?.name?.toUpperCase()}</Text>
-          </View>
-        </>
-      ) : (
-        <>
-          <Text style={styles.nowServing}>MENUNGGU</Text>
-          <Text style={[styles.bigNumber, { color: Colors.onSurfaceVariant }]}>---</Text>
-        </>
-      )}
-    </View>
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>PUSKESMAS</Text>
+        <Text style={styles.headerSubtitle}>{serviceName}</Text>
+      </View>
 
-    {/* Next queue list */}
-    {nextQueues.length > 0 && (
+      {/* Nomor dipanggil */}
+      <View style={styles.mainSection}>
+        {currentQueue ? (
+          <>
+            <Text style={styles.nowServing}>NOMOR YANG DIPANGGIL</Text>
+            <Text style={styles.bigNumber}>{currentQueue.queueNumber}</Text>
+            <View style={styles.callBanner}>
+              <Text style={styles.callText}>
+                SILAKAN MENUJU {serviceName}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.nowServing}>MENUNGGU</Text>
+            <Text style={styles.bigNumberMuted}>---</Text>
+            <Text style={styles.waitHint}>Nomor berikutnya akan muncul di sini</Text>
+          </>
+        )}
+      </View>
+
+      {/* Daftar berikutnya */}
       <View style={styles.nextSection}>
         <Text style={styles.nextTitle}>BERIKUTNYA</Text>
-        <View style={styles.nextRow}>
-          {nextQueues.slice(0, 5).map((q) => (
-            <View key={q.id} style={styles.nextCard}>
-              <Text style={styles.nextNumber}>{q.queueNumber}</Text>
-            </View>
-          ))}
-        </View>
+        {next.length > 0 ? (
+          <View style={styles.nextRow}>
+            {next.map((q) => (
+              <View key={q.id} style={styles.nextCard}>
+                <Text style={styles.nextNumber}>{q.queueNumber}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.nextEmpty}>Tidak ada antrean berikutnya</Text>
+        )}
       </View>
-    )}
 
-    {/* Footer */}
-    <View style={styles.footer}>
-      <Text style={styles.footerText}>Terima kasih atas kunjungan Anda</Text>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Terima kasih atas kunjungan Anda</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: TV.bg,
   },
   header: {
-    paddingTop: 40,
-    paddingBottom: 20,
+    paddingTop: Math.max(24, big * 0.04),
+    paddingBottom: big * 0.03,
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: TV.headerBg,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: big * 0.045,
     fontWeight: '900',
-    color: Colors.onPrimary,
-    letterSpacing: 4,
+    color: TV.onBg,
+    letterSpacing: 6,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   headerSubtitle: {
-    fontSize: 20,
+    fontSize: big * 0.032,
     fontWeight: '700',
-    color: Colors.primaryContainer,
-    letterSpacing: 2,
-    marginTop: 4,
+    color: TV.muted,
+    letterSpacing: 3,
+    marginTop: 6,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
+
   mainSection: {
     flex: 1,
     justifyContent: 'center',
@@ -89,73 +122,111 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   nowServing: {
-    fontSize: 22,
+    fontSize: big * 0.035,
     fontWeight: '600',
-    color: Colors.primaryContainer,
-    letterSpacing: 2,
+    color: TV.muted,
+    letterSpacing: 3,
     marginBottom: 12,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   bigNumber: {
-    fontSize: Math.min(width, height) * 0.25,
+    fontSize: big * 0.28,
     fontWeight: '900',
-    color: Colors.white,
+    color: TV.accent,
+    letterSpacing: 10,
+    textAlign: 'center',
+    alignSelf: 'stretch',
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 2, height: 3 },
+    textShadowRadius: 10,
+  },
+  bigNumberMuted: {
+    fontSize: big * 0.22,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.45)',
     letterSpacing: 8,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 8,
+    textAlign: 'center',
+    alignSelf: 'stretch',
+  },
+  waitHint: {
+    marginTop: 16,
+    fontSize: big * 0.028,
+    color: TV.muted,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
   callBanner: {
-    marginTop: 20,
-    backgroundColor: Colors.onPrimary,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    marginTop: big * 0.03,
+    backgroundColor: TV.bannerBg,
+    paddingHorizontal: 36,
+    paddingVertical: 16,
     borderRadius: 50,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   callText: {
-    fontSize: 18,
+    fontSize: big * 0.032,
     fontWeight: '800',
-    color: Colors.primary,
-    letterSpacing: 1,
+    color: TV.bannerText,
+    letterSpacing: 2,
+    textAlign: 'center',
   },
+
   nextSection: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingVertical: 20,
+    backgroundColor: TV.nextBg,
+    paddingVertical: big * 0.028,
     paddingHorizontal: 24,
   },
   nextTitle: {
-    color: Colors.primaryContainer,
-    fontSize: 14,
+    color: TV.muted,
+    fontSize: big * 0.022,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 3,
     textAlign: 'center',
-    marginBottom: 12,
+    alignSelf: 'stretch',
+    marginBottom: 14,
   },
   nextRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
     flexWrap: 'wrap',
+    gap: 12,
   },
   nextCard: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: TV.cardBg,
+    borderRadius: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: TV.cardBorder,
+    minWidth: big * 0.14,
+    alignItems: 'center',
   },
   nextNumber: {
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: '700',
+    color: TV.onBg,
+    fontSize: big * 0.04,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
+  nextEmpty: {
+    color: TV.muted,
+    fontSize: big * 0.026,
+    textAlign: 'center',
+    alignSelf: 'stretch',
+  },
+
   footer: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: TV.headerBg,
   },
   footerText: {
-    color: Colors.primaryContainer,
-    fontSize: 14,
+    color: TV.muted,
+    fontSize: big * 0.022,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
 });

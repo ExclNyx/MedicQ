@@ -1,32 +1,45 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { QueueStatus } from '../../core/models';
-import { Colors } from '../../core/constants/colors';
+import { StyleSheet, Text, View } from 'react-native';
+import { useColors } from '../../core/theme/ThemeContext';
+import type { ColorKey } from '../../core/constants/colors';
+import type { QueueStatus } from '../../core/models';
 
 interface Props {
   status: QueueStatus;
   size?: 'sm' | 'md';
 }
 
-const STATUS_CONFIG: Record<QueueStatus, { label: string; color: string; bg: string }> = {
-  WAITING: { label: 'Menunggu', color: Colors.statusWaiting, bg: Colors.statusWaitingBg },
-  CALLED: { label: 'Dipanggil', color: Colors.statusCalled, bg: Colors.statusCalledBg },
-  SERVING: { label: 'Dilayani', color: Colors.statusServing, bg: Colors.statusServingBg },
-  COMPLETED: { label: 'Selesai', color: Colors.statusCompleted, bg: Colors.statusCompletedBg },
-  SKIPPED: { label: 'Dilewati', color: Colors.statusSkipped, bg: Colors.statusSkippedBg },
+const STATUS_CONFIG: Record<
+  QueueStatus,
+  { label: string; colorKey: ColorKey; bgKey: ColorKey }
+> = {
+  WAITING: { label: 'Menunggu', colorKey: 'statusWaiting', bgKey: 'statusWaitingBg' },
+  CALLED: { label: 'Dipanggil', colorKey: 'statusCalled', bgKey: 'statusCalledBg' },
+  SERVING: { label: 'Dilayani', colorKey: 'statusServing', bgKey: 'statusServingBg' },
+  COMPLETED: { label: 'Selesai', colorKey: 'statusCompleted', bgKey: 'statusCompletedBg' },
+  SKIPPED: { label: 'Dilewati', colorKey: 'statusSkipped', bgKey: 'statusSkippedBg' },
 };
 
-export const StatusBadge: React.FC<Props> = ({ status, size = 'md' }) => {
+export function StatusBadge({ status, size = 'md' }: Props) {
+  const c = useColors();
   const cfg = STATUS_CONFIG[status];
   const isSmall = size === 'sm';
+
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.bg }, isSmall && styles.badgeSm]}>
-      <Text style={[styles.label, { color: cfg.color }, isSmall && styles.labelSm]}>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: c[cfg.bgKey] },
+        isSmall && styles.badgeSm,
+      ]}
+    >
+      <Text
+        style={[styles.label, { color: c[cfg.colorKey] }, isSmall && styles.labelSm]}
+      >
         {cfg.label}
       </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   badge: {
@@ -34,8 +47,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 20,
     alignSelf: 'flex-start',
+    flexShrink: 0,
   },
   badgeSm: { paddingHorizontal: 8, paddingVertical: 3 },
-  label: { fontSize: 13, fontWeight: '600' },
-  labelSm: { fontSize: 11 },
+  label: { fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  labelSm: { fontSize: 11, lineHeight: 15 },
 });

@@ -1,117 +1,298 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Colors } from '../../core/constants/colors';
+import { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FormField } from '../../components/ui/FormField';
+import { OutlineButton } from '../../components/ui/OutlineButton';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { StaffHeader } from '../../components/ui/StaffHeader';
 import { COMPLAINT_OPTIONS } from '../../core/constants/complaints';
+import { DEFAULT_SERVICES } from '../../core/constants/services';
+import { useColors } from '../../core/theme/ThemeContext';
 
 export default function ComplaintFormScreen() {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+
   const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [selectedService, setSelectedService] = useState('');
-
-  const services = [
-    { id: 'poli_umum', name: 'Poli Umum' },
-    { id: 'poli_gigi', name: 'Poli Gigi' },
-    { id: 'kia', name: 'KIA' },
-    { id: 'lansia', name: 'Poli Lansia' },
-  ];
+  const [error, setError] = useState<string | null>(null);
 
   const toggleComplaint = (label: string) => {
-    if (selectedComplaints.includes(label)) {
-      setSelectedComplaints(prev => prev.filter(c => c !== label));
-    } else {
-      setSelectedComplaints(prev => [...prev, label]);
-    }
+    setSelectedComplaints((prev) =>
+      prev.includes(label) ? prev.filter((x) => x !== label) : [...prev, label],
+    );
   };
 
   const handleSubmit = () => {
     if (!selectedService) {
-      Alert.alert('Perhatian', 'Silakan pilih poli tujuan terlebih dahulu');
+      setError('Pilih poli tujuan terlebih dahulu.');
       return;
     }
-    
-    const svc = services.find(s => s.id === selectedService);
-    
+    setError(null);
+
+    const svc = DEFAULT_SERVICES.find((s) => s.id === selectedService);
     Alert.alert(
-      'Antrean Dibuat (UI Demo)',
-      `Pasien masuk ke ${svc?.name}.\n\nNomor Antrean: A-029`,
-      [{ text: 'Kembali ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }]
+      'Nomor Antrean Dibuat (UI Demo)',
+      `Pasien masuk ke ${svc?.name}.\n\nNomor Antrean: A-029\n\nSaat Firestore terhubung, nomor ini otomatis tampil di aplikasi pasien & display TV.`,
+      [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }],
     );
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Pencatatan Keluhan</Text>
-          <Text style={styles.desc}>Pilih keluhan umum atau ketik manual (opsional)</Text>
-          
-          <View style={styles.grid}>
-            {COMPLAINT_OPTIONS.map((opt) => {
-              const active = selectedComplaints.includes(opt.label);
-              return (
-                <TouchableOpacity key={opt.id} style={[styles.chip, active && styles.chipActive]} onPress={() => toggleComplaint(opt.label)}>
-                  <Text style={styles.chipEmoji}>{opt.icon}</Text>
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
+    <View style={[styles.flex, { backgroundColor: c.background }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingBottom: 32 + insets.bottom }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <StaffHeader title="Keluhan & Poli" subtitle="Pencatatan sebelum nomor antrean" />
+
+          <View style={styles.body}>
+            {/* Keluhan */}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: c.surface, borderColor: c.cardBorder },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: c.onSurface }]}>
+              Pencatatan Keluhan
+            </Text>
+            <Text style={[styles.cardDesc, { color: c.onSurfaceVariant }]}>
+              Pilih keluhan yang sesuai, atau tambahkan catatan khusus.
+            </Text>
+
+            <View style={styles.chipGrid}>
+              {COMPLAINT_OPTIONS.map((opt) => {
+                const active = selectedComplaints.includes(opt.label);
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? c.primaryContainer : c.surfaceSoft,
+                        borderColor: active ? c.primary : c.outlineVariant,
+                      },
+                    ]}
+                    onPress={() => toggleComplaint(opt.label)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: active }}
+                  >
+                    <Text style={styles.chipEmoji}>{opt.icon}</Text>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: active ? c.onPrimaryContainer : c.onSurfaceVariant },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <FormField
+              label="Catatan khusus (opsional)"
+              value={note}
+              onChangeText={setNote}
+              placeholder="Mis. demam sejak 2 hari lalu…"
+              multiline
+            />
           </View>
 
-          <TextInput
-            style={styles.inputArea}
-            placeholder="Catatan keluhan tambahan..."
-            value={note}
-            onChangeText={setNote}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
+          {/* Poli tujuan */}
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: c.surface, borderColor: c.cardBorder },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: c.onSurface }]}>
+              Poli Tujuan <Text style={{ color: c.error }}>*</Text>
+            </Text>
+            <Text style={[styles.cardDesc, { color: c.onSurfaceVariant }]}>
+              Nomor antrean mengikuti kode poli (mis. A-029 untuk Poli Umum).
+            </Text>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Penentuan Poli Tujuan <Text style={{color: Colors.error}}>*</Text></Text>
-          <Text style={styles.desc}>Pilih poli sesuai dengan keluhan pasien</Text>
+            <View accessibilityRole="radiogroup">
+              {DEFAULT_SERVICES.map((svc) => {
+                const active = selectedService === svc.id;
+                return (
+                  <TouchableOpacity
+                    key={svc.id}
+                    style={[
+                      styles.radioItem,
+                      {
+                        backgroundColor: active ? c.primaryContainer : c.surface,
+                        borderColor: active ? c.primary : c.outlineVariant,
+                      },
+                    ]}
+                    onPress={() => {
+                      setSelectedService(svc.id);
+                      setError(null);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <View
+                      style={[
+                        styles.radioOuter,
+                        { borderColor: active ? c.primary : c.outlineVariant },
+                      ]}
+                    >
+                      {active ? (
+                        <View style={[styles.radioInner, { backgroundColor: c.primary }]} />
+                      ) : null}
+                    </View>
+                    <View style={styles.flex}>
+                      <Text
+                        style={[
+                          styles.radioText,
+                          { color: active ? c.onPrimaryContainer : c.onSurface },
+                        ]}
+                      >
+                        {svc.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.radioSub,
+                          { color: active ? c.onPrimaryContainer : c.onSurfaceVariant },
+                        ]}
+                      >
+                        Kode {svc.code} · {svc.description}
+                      </Text>
+                    </View>
+                    {active ? (
+                      <Ionicons name="checkmark-circle" size={20} color={c.primary} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          {services.map(svc => (
-            <TouchableOpacity key={svc.id} style={[styles.radioItem, selectedService === svc.id && styles.radioItemActive]} onPress={() => setSelectedService(svc.id)}>
-              <View style={[styles.radioOuter, selectedService === svc.id && { borderColor: Colors.primary }]}>
-                {selectedService === svc.id && <View style={styles.radioInner} />}
+            {error ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: c.errorContainer, borderColor: c.error },
+                ]}
+                accessibilityRole="alert"
+              >
+                <Ionicons name="alert-circle-outline" size={16} color={c.error} />
+                <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
               </View>
-              <View>
-                <Text style={[styles.radioText, selectedService === svc.id && { color: Colors.primary, fontWeight: '700' }]}>{svc.name}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            ) : null}
+          </View>
 
-        <TouchableOpacity style={styles.btn} onPress={handleSubmit}>
-          <Text style={styles.btnText}>BUAT NOMOR ANTREAN</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
+            <PrimaryButton label="BUAT NOMOR ANTREAN" onPress={handleSubmit} />
+            <OutlineButton
+              label="Kembali"
+              icon="chevron-back"
+              tone="danger"
+              onPress={() => router.back()}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { padding: 20 },
-  card: { backgroundColor: Colors.surface, padding: 20, borderRadius: 16, elevation: 2, marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.onSurface, marginBottom: 4 },
-  desc: { fontSize: 12, color: Colors.onSurfaceVariant, marginBottom: 16 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surfaceVariant, borderWidth: 1, borderColor: Colors.outlineVariant },
-  chipActive: { backgroundColor: Colors.primaryContainer, borderColor: Colors.primary },
-  chipEmoji: { fontSize: 14, marginRight: 6 },
-  chipText: { fontSize: 12, color: Colors.onSurfaceVariant, fontWeight: '500' },
-  chipTextActive: { color: Colors.onPrimaryContainer, fontWeight: '700' },
-  inputArea: { borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 12, padding: 12, backgroundColor: Colors.grey100, textAlignVertical: 'top', minHeight: 80 },
-  radioItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderWidth: 1, borderColor: Colors.outlineVariant, borderRadius: 12, marginBottom: 10, backgroundColor: Colors.surface },
-  radioItemActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer },
-  radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.outlineVariant, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
-  radioText: { fontSize: 15, fontWeight: '600', color: Colors.onSurfaceVariant },
-  btn: { backgroundColor: Colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10, marginBottom: 40 },
-  btnText: { color: Colors.onPrimary, fontWeight: '700', fontSize: 14 },
+  flex: { flex: 1 },
+  scroll: { flexGrow: 1 },
+  body: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    marginTop: -40,
+    gap: 16,
+  },
+
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  cardTitle: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  cardDesc: { fontSize: 12, lineHeight: 16, marginTop: 4, marginBottom: 14 },
+
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 6,
+  },
+  chipEmoji: { fontSize: 14 },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
+    flexShrink: 1,
+  },
+
+  radioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    marginBottom: 10,
+    gap: 12,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  radioInner: { width: 10, height: 10, borderRadius: 5 },
+  radioText: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  radioSub: { fontSize: 11, marginTop: 1, lineHeight: 15 },
+
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 4,
+  },
+  errorText: { fontSize: 13, fontWeight: '600', flex: 1 },
 });

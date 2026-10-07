@@ -1,42 +1,60 @@
-import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useColors } from '../../core/theme/ThemeContext';
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useColors } from "../../core/theme/ThemeContext";
 
 const MONTHS_ID = [
-  'Januari',
-  'Februari',
-  'Maret',
-  'April',
-  'Mei',
-  'Juni',
-  'Juli',
-  'Agustus',
-  'September',
-  'Oktober',
-  'November',
-  'Desember',
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
 ];
 
-const WEEKDAYS_ID = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const WEEKDAYS_ID = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const MIN_YEAR = 1900;
 
 function pad(n: number): string {
-  return String(n).padStart(2, '0');
+  return String(n).padStart(2, "0");
 }
 
 function parseDdMmYyyy(value: string): Date | null {
-  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value || '');
+  const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value || "");
   if (!match) return null;
   const day = Number(match[1]);
   const month = Number(match[2]);
   const year = Number(match[3]);
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
     return null;
   }
   const now = new Date();
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const todayEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
   if (year < MIN_YEAR || date > todayEnd) return null;
   return date;
 }
@@ -64,7 +82,15 @@ function isSameDay(a: Date, b: Date): boolean {
 
 function endOfToday(): Date {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
 }
 
 interface DatePickerFieldProps {
@@ -87,7 +113,7 @@ export function DatePickerField({
   onChange,
   error,
   hint,
-  placeholder = 'Pilih tanggal lahir',
+  placeholder = "Pilih tanggal lahir",
   disabled = false,
 }: DatePickerFieldProps) {
   const c = useColors();
@@ -113,7 +139,7 @@ export function DatePickerField({
 
   const applyYearInput = (text: string) => {
     setYearText(text);
-    const n = parseInt(text.replace(/\D/g, '').slice(0, 4), 10);
+    const n = parseInt(text.replace(/\D/g, "").slice(0, 4), 10);
     if (!Number.isNaN(n) && n >= MIN_YEAR && n <= maxYear) {
       setViewYear(n);
       if (n === maxYear && viewMonth > max.getMonth()) {
@@ -172,7 +198,7 @@ export function DatePickerField({
     weeks.push(cells.slice(i, i + 7));
   }
 
-  const monthLabel = MONTHS_ID[viewMonth] ?? '';
+  const monthLabel = MONTHS_ID[viewMonth] ?? "";
   const atMaxMonth = viewYear === maxYear && viewMonth >= max.getMonth();
   const atMinYear = viewYear <= MIN_YEAR;
   const atMaxYear = viewYear >= maxYear;
@@ -193,7 +219,9 @@ export function DatePickerField({
         disabled={disabled}
         activeOpacity={0.75}
         accessibilityRole="button"
-        accessibilityLabel={value ? `${label} ${value}` : `${label}, pilih tanggal`}
+        accessibilityLabel={
+          value ? `${label} ${value}` : `${label}, pilih tanggal`
+        }
       >
         <Text
           style={[styles.valueText, { color: value ? c.onSurface : c.outline }]}
@@ -201,7 +229,9 @@ export function DatePickerField({
         >
           {value || placeholder}
         </Text>
-        <Text style={[styles.chevron, { color: c.primary }]}>{open ? '▴' : '▾'}</Text>
+        <Text style={[styles.chevron, { color: c.primary }]}>
+          {open ? "▴" : "▾"}
+        </Text>
       </TouchableOpacity>
 
       {error ? (
@@ -212,7 +242,10 @@ export function DatePickerField({
 
       {open ? (
         <View
-          style={[styles.panel, { backgroundColor: c.surface, borderColor: c.outlineVariant }]}
+          style={[
+            styles.panel,
+            { backgroundColor: c.surface, borderColor: c.outlineVariant },
+          ]}
         >
           {/* Bulan */}
           <View style={styles.navRow}>
@@ -257,7 +290,11 @@ export function DatePickerField({
               maxLength={4}
               style={[
                 styles.yearInput,
-                { color: c.onSurface, borderColor: c.outlineVariant, backgroundColor: c.surfaceSoft },
+                {
+                  color: c.onSurface,
+                  borderColor: c.outlineVariant,
+                  backgroundColor: c.surfaceSoft,
+                },
               ]}
               accessibilityLabel="Tahun lahir"
               placeholder="Tahun"
@@ -277,7 +314,10 @@ export function DatePickerField({
           {/* Header hari */}
           <View style={styles.weekRow}>
             {WEEKDAYS_ID.map((d) => (
-              <Text key={d} style={[styles.weekday, { color: c.onSurfaceVariant }]}>
+              <Text
+                key={d}
+                style={[styles.weekday, { color: c.onSurfaceVariant }]}
+              >
                 {d}
               </Text>
             ))}
@@ -299,8 +339,16 @@ export function DatePickerField({
                     key={`d-${wi}-${di}`}
                     style={[
                       styles.dayCell,
-                      isSelected && { backgroundColor: c.primary, borderRadius: 20 },
-                      !isSelected && isToday && { borderWidth: 1.5, borderColor: c.primary, borderRadius: 20 },
+                      isSelected && {
+                        backgroundColor: c.primary,
+                        borderRadius: 20,
+                      },
+                      !isSelected &&
+                        isToday && {
+                          borderWidth: 1.5,
+                          borderColor: c.primary,
+                          borderRadius: 20,
+                        },
                     ]}
                     onPress={() => selectDay(day)}
                     disabled={isFuture}
@@ -318,7 +366,7 @@ export function DatePickerField({
                               : isToday
                                 ? c.primary
                                 : c.onSurface,
-                          fontWeight: isSelected || isToday ? '700' : '500',
+                          fontWeight: isSelected || isToday ? "700" : "500",
                         },
                       ]}
                     >
@@ -332,7 +380,9 @@ export function DatePickerField({
 
           <View style={[styles.footer, { borderTopColor: c.outlineVariant }]}>
             <Text style={[styles.footerText, { color: c.onSurfaceVariant }]}>
-              {parsed ? `Terpilih: ${formatDdMmYyyy(parsed)}` : 'Ketuk tanggal untuk memilih'}
+              {parsed
+                ? `Terpilih: ${formatDdMmYyyy(parsed)}`
+                : "Ketuk tanggal untuk memilih"}
             </Text>
             <TouchableOpacity
               onPress={() => setOpen(false)}
@@ -340,7 +390,9 @@ export function DatePickerField({
               accessibilityRole="button"
               accessibilityLabel="Selesai"
             >
-              <Text style={[styles.doneBtnText, { color: c.onPrimary }]}>Selesai</Text>
+              <Text style={[styles.doneBtnText, { color: c.onPrimary }]}>
+                Selesai
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -351,18 +403,18 @@ export function DatePickerField({
 
 const styles = StyleSheet.create({
   wrapper: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
   box: {
     minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
     borderRadius: 14,
     paddingHorizontal: 14,
   },
   valueText: { flex: 1, fontSize: 15 },
-  chevron: { fontSize: 16, fontWeight: '700', paddingHorizontal: 4 },
-  error: { fontSize: 12, marginTop: 6, fontWeight: '500' },
+  chevron: { fontSize: 16, fontWeight: "700", paddingHorizontal: 4 },
+  error: { fontSize: 12, marginTop: 6, fontWeight: "500" },
   hint: { fontSize: 12, marginTop: 6 },
 
   panel: {
@@ -372,26 +424,26 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 6,
   },
   navBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   navBtnOff: { opacity: 0.35 },
-  navBtnText: { fontSize: 26, fontWeight: '700', lineHeight: 28 },
-  navTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700' },
+  navBtnText: { fontSize: 26, fontWeight: "700", lineHeight: 28 },
+  navTitle: { flex: 1, textAlign: "center", fontSize: 15, fontWeight: "700" },
 
   yearRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   yearInput: {
@@ -401,25 +453,25 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: 10,
     paddingHorizontal: 12,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
-  weekRow: { flexDirection: 'row' },
+  weekRow: { flexDirection: "row" },
   weekday: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     paddingVertical: 6,
   },
   dayCell: {
     flex: 1,
     minHeight: 40,
     margin: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 20,
   },
   dayText: { fontSize: 14 },
@@ -428,17 +480,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 10,
     borderTopWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   footerText: { flex: 1, fontSize: 12, marginRight: 8 },
   doneBtn: {
     minHeight: 40,
     paddingHorizontal: 18,
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  doneBtnText: { fontSize: 13, fontWeight: '700' },
+  doneBtnText: { fontSize: 13, fontWeight: "700" },
 });

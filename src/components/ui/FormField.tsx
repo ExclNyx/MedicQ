@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState } from 'react';
+import { forwardRef, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   View,
   type TextInputProps,
-} from 'react-native';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useScrollToFocusedInput } from './AuthScreen';
+} from "react-native";
+import { useColors } from "../../core/theme/ThemeContext";
+import { useScrollToFocusedInput } from "./AuthScreen";
 
 interface FormFieldProps extends TextInputProps {
   label: string;
@@ -23,108 +23,138 @@ interface FormFieldProps extends TextInputProps {
  * Kalau `secureTextEntry` diberikan, tombol Lihat/Sembunyikan muncul otomatis.
  * Saat fokus, meneruskan ref ke AuthScreen untuk scroll-into-view (tanpa TextInput.State).
  */
-export const FormField = forwardRef<TextInput, FormFieldProps>(function FormField(
-  { label, error, hint, multiline, secureTextEntry, onFocus, onBlur, style, ...inputProps },
-  ref
-) {
-  const c = useColors();
-  const [focused, setFocused] = useState(false);
-  const [hidden, setHidden] = useState(true);
-  const isPassword = !!secureTextEntry;
-  const scrollToFocusedInput = useScrollToFocusedInput();
-  const innerRef = useRef<TextInput | null>(null);
+export const FormField = forwardRef<TextInput, FormFieldProps>(
+  function FormField(
+    {
+      label,
+      error,
+      hint,
+      multiline,
+      secureTextEntry,
+      onFocus,
+      onBlur,
+      style,
+      ...inputProps
+    },
+    ref,
+  ) {
+    const c = useColors();
+    const [focused, setFocused] = useState(false);
+    const [hidden, setHidden] = useState(true);
+    const isPassword = !!secureTextEntry;
+    const scrollToFocusedInput = useScrollToFocusedInput();
+    const innerRef = useRef<TextInput | null>(null);
 
-  const setInputRef = (node: TextInput | null) => {
-    innerRef.current = node;
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref && typeof ref === 'object') {
-      (ref as { current: TextInput | null }).current = node;
-    }
-  };
+    const setInputRef = (node: TextInput | null) => {
+      innerRef.current = node;
+      if (typeof ref === "function") {
+        ref(node);
+      } else if (ref && typeof ref === "object") {
+        (ref as { current: TextInput | null }).current = node;
+      }
+    };
 
-  return (
-    <View style={styles.wrapper}>
-      <Text style={[styles.label, { color: c.onSurfaceVariant }]}>{label}</Text>
-
-      <View
-        style={[
-          styles.box,
-          multiline && styles.boxMulti,
-          {
-            backgroundColor: c.surface,
-            borderColor: error ? c.error : focused ? c.primary : c.outlineVariant,
-          },
-        ]}
-      >
-        <TextInput
-          ref={setInputRef}
-          {...inputProps}
-          style={[styles.input, multiline && styles.inputMulti, { color: c.onSurface }, style]}
-          placeholderTextColor={c.outline}
-          accessibilityLabel={label}
-          multiline={multiline}
-          secureTextEntry={isPassword ? hidden : false}
-          onFocus={(event) => {
-            setFocused(true);
-            onFocus?.(event);
-            try {
-              scrollToFocusedInput(innerRef.current);
-            } catch {
-              // abaikan bila measure gagal — keyboard tetap boleh terbuka
-            }
-          }}
-          onBlur={(event) => {
-            setFocused(false);
-            onBlur?.(event);
-          }}
-        />
-
-        {isPassword && (
-          <TouchableOpacity
-            onPress={() => setHidden((prev) => !prev)}
-            style={styles.toggle}
-            accessibilityRole="button"
-            accessibilityLabel={hidden ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi'}
-          >
-            <Text style={[styles.toggleText, { color: c.primary }]}>
-              {hidden ? 'Lihat' : 'Sembunyikan'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {error ? (
-        <Text style={[styles.error, { color: c.error }]} accessibilityRole="alert">
-          {error}
+    return (
+      <View style={styles.wrapper}>
+        <Text style={[styles.label, { color: c.onSurfaceVariant }]}>
+          {label}
         </Text>
-      ) : hint ? (
-        <Text style={[styles.hint, { color: c.onSurfaceVariant }]}>{hint}</Text>
-      ) : null}
-    </View>
-  );
-});
+
+        <View
+          style={[
+            styles.box,
+            multiline && styles.boxMulti,
+            {
+              backgroundColor: c.surface,
+              borderColor: error
+                ? c.error
+                : focused
+                  ? c.primary
+                  : c.outlineVariant,
+            },
+          ]}
+        >
+          <TextInput
+            ref={setInputRef}
+            {...inputProps}
+            style={[
+              styles.input,
+              multiline && styles.inputMulti,
+              { color: c.onSurface },
+              style,
+            ]}
+            placeholderTextColor={c.outline}
+            accessibilityLabel={label}
+            multiline={multiline}
+            secureTextEntry={isPassword ? hidden : false}
+            onFocus={(event) => {
+              setFocused(true);
+              onFocus?.(event);
+              try {
+                scrollToFocusedInput(innerRef.current);
+              } catch {
+                // abaikan bila measure gagal — keyboard tetap boleh terbuka
+              }
+            }}
+            onBlur={(event) => {
+              setFocused(false);
+              onBlur?.(event);
+            }}
+          />
+
+          {isPassword && (
+            <TouchableOpacity
+              onPress={() => setHidden((prev) => !prev)}
+              style={styles.toggle}
+              accessibilityRole="button"
+              accessibilityLabel={
+                hidden ? "Tampilkan kata sandi" : "Sembunyikan kata sandi"
+              }
+            >
+              <Text style={[styles.toggleText, { color: c.primary }]}>
+                {hidden ? "Lihat" : "Sembunyikan"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {error ? (
+          <Text
+            style={[styles.error, { color: c.error }]}
+            accessibilityRole="alert"
+          >
+            {error}
+          </Text>
+        ) : hint ? (
+          <Text style={[styles.hint, { color: c.onSurfaceVariant }]}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   wrapper: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", marginBottom: 6 },
   box: {
     minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
     borderRadius: 14,
   },
-  boxMulti: { alignItems: 'flex-start' },
+  boxMulti: { alignItems: "flex-start" },
   input: {
     flex: 1,
     minHeight: 48,
     paddingHorizontal: 14,
     fontSize: 15,
   },
-  inputMulti: { minHeight: 88, paddingTop: 12, textAlignVertical: 'top' },
-  toggle: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' },
-  toggleText: { fontSize: 13, fontWeight: '700' },
-  error: { fontSize: 12, marginTop: 6, fontWeight: '500' },
+  inputMulti: { minHeight: 88, paddingTop: 12, textAlignVertical: "top" },
+  toggle: { minHeight: 44, paddingHorizontal: 14, justifyContent: "center" },
+  toggleText: { fontSize: 13, fontWeight: "700" },
+  error: { fontSize: 12, marginTop: 6, fontWeight: "500" },
   hint: { fontSize: 12, marginTop: 6 },
 });

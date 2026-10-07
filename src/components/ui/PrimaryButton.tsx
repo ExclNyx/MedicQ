@@ -1,6 +1,11 @@
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useColors } from '../../core/theme/ThemeContext';
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
+import { useColors } from "../../core/theme/ThemeContext";
 
 interface PrimaryButtonProps {
   label: string;
@@ -12,7 +17,12 @@ interface PrimaryButtonProps {
 /**
  * Tombol utama — gradasi native + shadow lembut, mendukung dark mode.
  */
-export function PrimaryButton({ label, onPress, loading = false, disabled = false }: PrimaryButtonProps) {
+export function PrimaryButton({
+  label,
+  onPress,
+  loading = false,
+  disabled = false,
+}: PrimaryButtonProps) {
   const c = useColors();
   const inactive = loading || disabled;
   const buttonColors = [c.primaryLight, c.primary, c.primaryDeep] as const;
@@ -51,7 +61,7 @@ const styles = StyleSheet.create({
   touch: {
     minHeight: 52,
     borderRadius: 14,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.22,
     shadowRadius: 8,
@@ -61,13 +71,14 @@ const styles = StyleSheet.create({
   gradient: {
     minHeight: 52,
     borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'stretch',
+    justifyContent: "center",
+    alignItems: "stretch",
   },
   text: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
+    alignSelf: "stretch",
+    textAlign: "center",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
+    lineHeight: 22,
   },
 });

@@ -1,40 +1,50 @@
-import { router } from 'expo-router';
-import { useRef, useState, type RefObject } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { AuthScreen } from '../../components/ui/AuthScreen';
-import { FormField } from '../../components/ui/FormField';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { useColors } from '../../core/theme/ThemeContext';
+import { router } from "expo-router";
+import { useRef, useState, type RefObject } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { AuthScreen } from "../../components/ui/AuthScreen";
+import { FormField } from "../../components/ui/FormField";
+import { PrimaryButton } from "../../components/ui/PrimaryButton";
+import { useColors } from "../../core/theme/ThemeContext";
 
-type Field = 'name' | 'email' | 'password' | 'confirm';
+type Field = "name" | "email" | "password" | "confirm";
 type Values = Record<Field, string>;
 type Errors = Partial<Record<Field, string>>;
 
 /** Urutan fokus saat submit gagal validasi — field error pertama yang di-focus. */
-const FIELD_ORDER: Field[] = ['name', 'email', 'password', 'confirm'];
+const FIELD_ORDER: Field[] = ["name", "email", "password", "confirm"];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 // TODO (tim backend): ganti dengan
 // authService.registerPatient(email, password, displayName)  (PRD F-P01)
-async function registerDemo(_name: string, _email: string, _password: string): Promise<void> {
+async function registerDemo(
+  _name: string,
+  _email: string,
+  _password: string,
+): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 600));
 }
 
 function validate(values: Values): Errors {
   const errors: Errors = {};
   if (values.name.trim().length < 3) {
-    errors.name = 'Nama lengkap minimal 3 karakter.';
+    errors.name = "Nama lengkap minimal 3 karakter.";
   }
   if (!EMAIL_PATTERN.test(values.email.trim())) {
-    errors.email = 'Masukkan alamat email yang valid.';
+    errors.email = "Masukkan alamat email yang valid.";
   }
   if (values.password.length < MIN_PASSWORD_LENGTH) {
     errors.password = `Kata sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`;
   }
   if (values.confirm !== values.password) {
-    errors.confirm = 'Konfirmasi kata sandi tidak sama.';
+    errors.confirm = "Konfirmasi kata sandi tidak sama.";
   }
   return errors;
 }
@@ -53,7 +63,12 @@ export default function RegisterScreen() {
     confirm: confirmRef,
   };
 
-  const [values, setValues] = useState<Values>({ name: '', email: '', password: '', confirm: '' });
+  const [values, setValues] = useState<Values>({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,7 +81,7 @@ export default function RegisterScreen() {
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(auth)/login');
+    else router.replace("/(auth)/login");
   };
 
   const focusFirstError = (found: Errors) => {
@@ -91,10 +106,14 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await registerDemo(values.name.trim(), values.email.trim(), values.password);
-      router.replace('/(auth)/complete-profile');
+      await registerDemo(
+        values.name.trim(),
+        values.email.trim(),
+        values.password,
+      );
+      router.replace("/(auth)/complete-profile");
     } catch {
-      setFormError('Pendaftaran gagal. Silakan coba lagi.');
+      setFormError("Pendaftaran gagal. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -112,7 +131,7 @@ export default function RegisterScreen() {
         ref={nameRef}
         label="Nama Lengkap"
         value={values.name}
-        onChangeText={(text) => setValue('name', text)}
+        onChangeText={(text) => setValue("name", text)}
         error={errors.name}
         placeholder="Nama sesuai KTP"
         autoCapitalize="words"
@@ -127,7 +146,7 @@ export default function RegisterScreen() {
         ref={emailRef}
         label="Email"
         value={values.email}
-        onChangeText={(text) => setValue('email', text)}
+        onChangeText={(text) => setValue("email", text)}
         error={errors.email}
         placeholder="nama@email.com"
         keyboardType="email-address"
@@ -144,7 +163,7 @@ export default function RegisterScreen() {
         ref={passwordRef}
         label="Kata Sandi"
         value={values.password}
-        onChangeText={(text) => setValue('password', text)}
+        onChangeText={(text) => setValue("password", text)}
         error={errors.password}
         hint={`Minimal ${MIN_PASSWORD_LENGTH} karakter.`}
         placeholder="Buat kata sandi"
@@ -161,7 +180,7 @@ export default function RegisterScreen() {
         ref={confirmRef}
         label="Konfirmasi Kata Sandi"
         value={values.confirm}
-        onChangeText={(text) => setValue('confirm', text)}
+        onChangeText={(text) => setValue("confirm", text)}
         error={errors.confirm}
         placeholder="Ulangi kata sandi"
         secureTextEntry
@@ -173,14 +192,26 @@ export default function RegisterScreen() {
         editable={!loading}
       />
 
-      <PrimaryButton label="Buat Akun" onPress={handleRegister} loading={loading} />
+      <PrimaryButton
+        label="Buat Akun"
+        onPress={handleRegister}
+        loading={loading}
+      />
 
       <View style={[styles.divider, { backgroundColor: c.outlineVariant }]} />
 
       <View style={styles.loginRow}>
-        <Text style={[styles.loginText, { color: c.onSurfaceVariant }]}>Sudah punya akun?</Text>
-        <TouchableOpacity onPress={goBack} style={styles.loginLink} accessibilityRole="link">
-          <Text style={[styles.loginLinkText, { color: c.primary }]}>Masuk</Text>
+        <Text style={[styles.loginText, { color: c.onSurfaceVariant }]}>
+          Sudah punya akun?
+        </Text>
+        <TouchableOpacity
+          onPress={goBack}
+          style={styles.loginLink}
+          accessibilityRole="link"
+        >
+          <Text style={[styles.loginLinkText, { color: c.primary }]}>
+            Masuk
+          </Text>
         </TouchableOpacity>
       </View>
     </AuthScreen>
@@ -189,17 +220,17 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   divider: { height: 1, marginVertical: 20 },
-  loginRow: { alignSelf: 'stretch' },
+  loginRow: { alignSelf: "stretch" },
   loginText: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
+    alignSelf: "stretch",
+    textAlign: "center",
     fontSize: 14,
   },
-  loginLink: { alignSelf: 'stretch', minHeight: 44, justifyContent: 'center' },
+  loginLink: { alignSelf: "stretch", minHeight: 44, justifyContent: "center" },
   loginLinkText: {
-    alignSelf: 'stretch',
-    textAlign: 'center',
+    alignSelf: "stretch",
+    textAlign: "center",
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

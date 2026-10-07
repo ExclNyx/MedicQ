@@ -7,8 +7,10 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Keyboard,
   ScrollView,
@@ -16,24 +18,24 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useColors } from '../../core/theme/ThemeContext';
-import { ThemeToggle } from './ThemeToggle';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useColors } from "../../core/theme/ThemeContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 /** Objek yang punya measureInWindow (instance TextInput). */
 export interface MeasureTarget {
   measureInWindow?: (
-    callback: (x: number, y: number, width: number, height: number) => void
+    callback: (x: number, y: number, width: number, height: number) => void,
   ) => void;
 }
 
 /** Ruang kosong (px) yang dijaga di bawah kolom aktif, supaya pesan error/hint ikut terlihat. */
 const SPACE_BELOW_FIELD = 64;
 
-const ScrollToFocusedContext = createContext<(input?: MeasureTarget | null) => void>(() => {});
+const ScrollToFocusedContext = createContext<
+  (input?: MeasureTarget | null) => void
+>(() => {});
 
 /** Dipanggil kolom isian saat difokuskan, supaya layar menggulir dan kolomnya tidak tertutup keyboard. */
 export function useScrollToFocusedInput() {
@@ -84,7 +86,7 @@ export function AuthScreen({
 
   const heroColors = useMemo(
     () => [c.primaryDeep, c.primary, c.primarySoft] as const,
-    [c.primaryDeep, c.primary, c.primarySoft]
+    [c.primaryDeep, c.primary, c.primarySoft],
   );
 
   /**
@@ -98,13 +100,17 @@ export function AuthScreen({
     if (target) lastInputRef.current = target;
 
     const top = keyboardTop.current;
-    if (top === null || !target || typeof target.measureInWindow !== 'function') return;
+    if (top === null || !target || typeof target.measureInWindow !== "function")
+      return;
 
     try {
       target.measureInWindow((_x, y, _width, height) => {
         const overlap = y + height + SPACE_BELOW_FIELD - top;
         if (overlap > 0) {
-          scrollRef.current?.scrollTo({ y: scrollY.current + overlap, animated: true });
+          scrollRef.current?.scrollTo({
+            y: scrollY.current + overlap,
+            animated: true,
+          });
         }
       });
     } catch {
@@ -113,12 +119,12 @@ export function AuthScreen({
   }, []);
 
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (event) => {
+    const show = Keyboard.addListener("keyboardDidShow", (event) => {
       keyboardTop.current = event.endCoordinates.screenY;
       setKeyboardHeight(event.endCoordinates.height);
       setTimeout(() => scrollFocusedIntoView(), 100);
     });
-    const hide = Keyboard.addListener('keyboardDidHide', () => {
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
       keyboardTop.current = null;
       setKeyboardHeight(0);
     });
@@ -133,7 +139,7 @@ export function AuthScreen({
     () => (input?: MeasureTarget | null) => {
       setTimeout(() => scrollFocusedIntoView(input), 150);
     },
-    [scrollFocusedIntoView]
+    [scrollFocusedIntoView],
   );
 
   const stepPercent = step ? Math.round((step.current / step.total) * 100) : 0;
@@ -145,7 +151,10 @@ export function AuthScreen({
           ref={scrollRef}
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 24 : 32 + insets.bottom },
+            {
+              paddingBottom:
+                keyboardHeight > 0 ? keyboardHeight + 24 : 32 + insets.bottom,
+            },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -169,8 +178,14 @@ export function AuthScreen({
                   accessibilityLabel="Kembali"
                 >
                   <View style={styles.backRow}>
-                    <Ionicons name="chevron-back" size={20} color={c.onPrimary} />
-                    <Text style={[styles.backText, { color: c.onPrimary }]}>Kembali</Text>
+                    <Ionicons
+                      name="chevron-back"
+                      size={20}
+                      color={c.onPrimary}
+                    />
+                    <Text style={[styles.backText, { color: c.onPrimary }]}>
+                      Kembali
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ) : (
@@ -194,9 +209,13 @@ export function AuthScreen({
                       </>
                     )}
                   </View>
-                  <Text style={[styles.appName, { color: c.onPrimary }]}>{brand.name}</Text>
+                  <Text style={[styles.appName, { color: c.onPrimary }]}>
+                    {brand.name}
+                  </Text>
                   {brand.tagline ? (
-                    <Text style={[styles.tagline, { color: c.onPrimaryMuted }]}>{brand.tagline}</Text>
+                    <Text style={[styles.tagline, { color: c.onPrimaryMuted }]}>
+                      {brand.tagline}
+                    </Text>
                   ) : null}
                 </View>
               )}
@@ -208,14 +227,24 @@ export function AuthScreen({
                   </Text>
                   <View style={styles.stepTrack}>
                     <View
-                      style={[styles.stepFill, { width: `${stepPercent}%`, backgroundColor: c.onPrimary }]}
+                      style={[
+                        styles.stepFill,
+                        {
+                          width: `${stepPercent}%`,
+                          backgroundColor: c.onPrimary,
+                        },
+                      ]}
                     />
                   </View>
                 </View>
               )}
-              <Text style={[styles.title, { color: c.onPrimary }]}>{title}</Text>
+              <Text style={[styles.title, { color: c.onPrimary }]}>
+                {title}
+              </Text>
               {subtitle ? (
-                <Text style={[styles.subtitle, { color: c.onPrimaryMuted }]}>{subtitle}</Text>
+                <Text style={[styles.subtitle, { color: c.onPrimaryMuted }]}>
+                  {subtitle}
+                </Text>
               ) : null}
             </View>
           </LinearGradient>
@@ -235,7 +264,9 @@ export function AuthScreen({
                   ]}
                   accessibilityRole="alert"
                 >
-                  <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
+                  <Text style={[styles.errorText, { color: c.error }]}>
+                    {error}
+                  </Text>
                 </View>
               ) : null}
               {children}
@@ -255,76 +286,83 @@ const styles = StyleSheet.create({
     paddingBottom: 64,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
   },
   inner: {
-    width: '100%',
+    width: "100%",
     maxWidth: 480,
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingHorizontal: 20,
   },
-  back: { alignSelf: 'flex-start', minWidth: 110, minHeight: 44, justifyContent: 'center' },
+  back: {
+    alignSelf: "flex-start",
+    minWidth: 110,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   backSpacer: { width: 110, height: 44 },
-  backRow: { flexDirection: 'row', alignItems: 'center' },
-  backText: { fontSize: 15, fontWeight: '600', marginLeft: 2 },
+  backRow: { flexDirection: "row", alignItems: "center" },
+  backText: { fontSize: 15, fontWeight: "600", marginLeft: 2 },
 
-  brand: { alignItems: 'center', marginBottom: 12, marginTop: 8 },
+  brand: { alignItems: "center", marginBottom: 12, marginTop: 8 },
   logo: {
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   crossVertical: {
-    position: 'absolute',
+    position: "absolute",
     width: 14,
     height: 40,
     borderRadius: 4,
-    backgroundColor: '#1565C0',
+    backgroundColor: "#1565C0",
   },
   crossHorizontal: {
-    position: 'absolute',
+    position: "absolute",
     width: 40,
     height: 14,
     borderRadius: 4,
-    backgroundColor: '#1565C0',
+    backgroundColor: "#1565C0",
   },
   appName: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.3,
-    textAlign: 'center',
+    textAlign: "center",
+    alignSelf: "stretch",
   },
   tagline: {
     fontSize: 14,
     marginTop: 4,
     paddingHorizontal: 24,
-    textAlign: 'center',
+    textAlign: "center",
+    alignSelf: "stretch",
   },
 
   stepBlock: { marginTop: 4 },
-  step: { fontSize: 12, fontWeight: '600' },
+  step: { fontSize: 12, fontWeight: "600" },
   stepTrack: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: "rgba(255,255,255,0.22)",
     marginTop: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   stepFill: {
-    height: '100%',
+    height: "100%",
     borderRadius: 2,
   },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 12 },
+  title: { fontSize: 24, fontWeight: "800", marginTop: 12 },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 6 },
 
   errorBox: {
@@ -333,12 +371,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
   },
-  errorText: { fontSize: 13, fontWeight: '600' },
+  errorText: { fontSize: 13, fontWeight: "600" },
 
   content: {
-    width: '100%',
+    width: "100%",
     maxWidth: 480,
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingHorizontal: 20,
     marginTop: -40,
   },

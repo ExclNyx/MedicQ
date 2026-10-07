@@ -188,5 +188,6 @@ const styles = StyleSheet.create({
 
   // Dev only
   devLink: { alignItems: "center", paddingVertical: 16 },
-  devLinkText: { fontSize: 12 },
+  // stretch + center: cegah teks terpotong di tepi kanan (Android)
+  devLinkText: { fontSize: 12, alignSelf: "stretch", textAlign: "center" },
 });

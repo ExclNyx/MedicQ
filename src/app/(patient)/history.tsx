@@ -1,46 +1,293 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { Colors } from '../../core/constants/colors';
+import { Ionicons } from "@expo/vector-icons";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { PatientHeader } from "../../components/ui/PatientHeader";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import type { QueueStatus } from "../../core/models";
+import { useColors } from "../../core/theme/ThemeContext";
+
+interface HistoryItem {
+  id: string;
+  visitDate: string; // YYYY-MM-DD
+  status: QueueStatus;
+  serviceName: string;
+  complaints: string[];
+}
+
+const HISTORY: HistoryItem[] = [
+  {
+    id: "1",
+    visitDate: "2026-10-10",
+    status: "COMPLETED",
+    serviceName: "Poli Umum",
+    complaints: ["Demam", "Pusing"],
+  },
+  {
+    id: "2",
+    visitDate: "2026-09-01",
+    status: "COMPLETED",
+    serviceName: "Poli Gigi",
+    complaints: ["Sakit Gigi"],
+  },
+];
+
+/** Parse "YYYY-MM-DD" sebagai tanggal lokal (hindari geser timezone UTC). */
+function parseLocalDate(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
 
 export default function HistoryScreen() {
-  const history = [
-    { id: '1', visitDate: '2026-10-10', status: 'COMPLETED', serviceName: 'Poli Umum', complaints: ['Demam', 'Pusing'] },
-    { id: '2', visitDate: '2026-09-01', status: 'COMPLETED', serviceName: 'Poli Gigi', complaints: ['Sakit Gigi'] },
-  ];
+  const c = useColors();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.flex, { backgroundColor: c.background }]}>
+      {/* Header fixed di luar list — tidak di-scroll, tidak bisa ketimpa kartu */}
+      <PatientHeader
+        title="Riwayat Kunjungan"
+        subtitle="Catatan kunjungan Anda ke puskesmas"
+      />
+
       <FlatList
-        data={history}
+        data={HISTORY}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.date}>{item.visitDate}</Text>
-              <Text style={styles.status}>{item.status}</Text>
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: 32 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <Text style={[styles.count, { color: c.onSurfaceVariant }]}>
+            {HISTORY.length} kunjungan tercatat
+          </Text>
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <View
+              style={[styles.emptyIcon, { backgroundColor: c.surfaceSoft }]}
+            >
+              <Ionicons name="file-tray-outline" size={32} color={c.primary} />
             </View>
-            <View style={styles.content}>
-              <Text style={styles.label}>Poli Tujuan:</Text>
-              <Text style={styles.value}>{item.serviceName}</Text>
-              <Text style={styles.label}>Keluhan:</Text>
-              <Text style={styles.value}>{item.complaints.join(', ')}</Text>
-            </View>
+            <Text style={[styles.emptyTitle, { color: c.onSurface }]}>
+              Belum ada riwayat
+            </Text>
+            <Text style={[styles.emptyText, { color: c.onSurfaceVariant }]}>
+              Kunjungan yang sudah selesai akan muncul di sini.
+            </Text>
           </View>
-        )}
+        }
+        renderItem={({ item }) => {
+          const dateLabel = format(
+            parseLocalDate(item.visitDate),
+            "d MMMM yyyy",
+            {
+              locale: id,
+            },
+          );
+          return (
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: c.surface,
+                  borderColor: c.cardBorder,
+                  shadowColor: c.primaryDeep,
+                },
+              ]}
+            >
+              <View style={[styles.accent, { backgroundColor: c.primary }]} />
+              <View style={styles.cardInner}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.dateRow}>
+                    <View
+                      style={[
+                        styles.dateIcon,
+                        { backgroundColor: c.surfaceSoft },
+                      ]}
+                    >
+                      <Ionicons
+                        name="calendar-outline"
+                        size={16}
+                        color={c.primary}
+                      />
+                    </View>
+                    <Text style={[styles.date, { color: c.onSurface }]}>
+                      {dateLabel}
+                    </Text>
+                  </View>
+                  <StatusBadge status={item.status} size="sm" />
+                </View>
+
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: c.outlineVariant },
+                  ]}
+                />
+
+                <View style={styles.metaRow}>
+                  <Ionicons
+                    name="medkit-outline"
+                    size={14}
+                    color={c.onSurfaceVariant}
+                  />
+                  <Text
+                    style={[styles.metaLabel, { color: c.onSurfaceVariant }]}
+                  >
+                    Poli Tujuan
+                  </Text>
+                  <Text style={[styles.metaValue, { color: c.onSurface }]}>
+                    {item.serviceName}
+                  </Text>
+                </View>
+
+                <View style={styles.chips}>
+                  <Text
+                    style={[styles.chipsLabel, { color: c.onSurfaceVariant }]}
+                  >
+                    Keluhan
+                  </Text>
+                  <View style={styles.chipsRow}>
+                    {item.complaints.map((complaint) => (
+                      <View
+                        key={complaint}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: c.primaryContainer },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            { color: c.onPrimaryContainer },
+                          ]}
+                        >
+                          {complaint}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+          );
+        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  list: { padding: 20 },
-  card: { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: Colors.outlineVariant, paddingBottom: 12, marginBottom: 12 },
-  date: { fontWeight: '700', color: Colors.onSurface },
-  status: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
-  content: { gap: 4 },
-  label: { fontSize: 12, color: Colors.onSurfaceVariant },
-  value: { fontSize: 14, color: Colors.onSurface, marginBottom: 8, fontWeight: '500' },
+  flex: { flex: 1 },
+  list: { paddingTop: 8 },
+  count: {
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+    marginBottom: 12,
+    marginHorizontal: 20,
+  },
+
+  card: {
+    flexDirection: "row",
+    borderRadius: 24,
+    marginHorizontal: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  accent: { width: 4 },
+  cardInner: { flex: 1, padding: 16, minWidth: 0 },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  dateIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  date: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    flexShrink: 1,
+  },
+  divider: { height: 1, marginVertical: 12 },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  metaLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+    flexShrink: 1,
+  },
+  metaValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    flexShrink: 1,
+  },
+  chips: { marginTop: 12 },
+  chipsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    flexShrink: 0,
+  },
+  chipText: { fontSize: 12, fontWeight: "600", lineHeight: 16 },
+
+  empty: { alignItems: "center", paddingTop: 48, paddingHorizontal: 32 },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    lineHeight: 22,
+    textAlign: "center",
+    alignSelf: "stretch",
+    marginBottom: 6,
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: "center",
+    alignSelf: "stretch",
+    lineHeight: 20,
+  },
 });

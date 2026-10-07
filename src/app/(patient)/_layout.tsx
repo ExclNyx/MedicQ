@@ -1,20 +1,23 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../core/constants/colors';
+import { useColors } from '../../core/theme/ThemeContext';
 
-export default function PatientLayout() {
+function PatientStack() {
+  const c = useColors();
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.primary },
-        headerTintColor: Colors.onPrimary,
-        headerTitleStyle: { fontWeight: '700' },
-        contentStyle: { backgroundColor: Colors.background },
+        headerShown: false,
+        contentStyle: { backgroundColor: c.background },
       }}
     >
-      <Stack.Screen name="home" options={{ title: 'Beranda' }} />
-      <Stack.Screen name="register-visit" options={{ title: 'Daftar Kunjungan' }} />
-      <Stack.Screen name="queue-status" options={{ title: 'Status Antrean' }} />
-      <Stack.Screen name="history" options={{ title: 'Riwayat' }} />
+      <Stack.Screen name="home" />
+      <Stack.Screen name="register-visit" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="queue-status" />
+      <Stack.Screen name="history" />
     </Stack>
   );
+}
+
+export default function PatientLayout() {
+  return <PatientStack />;
 }

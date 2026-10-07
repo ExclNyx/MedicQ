@@ -1,86 +1,155 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { QueueModel } from '../../core/models';
-import { Colors } from '../../core/constants/colors';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { QueueModel } from '../../core/models';
+import { useColors } from '../../core/theme/ThemeContext';
 import { StatusBadge } from '../ui/StatusBadge';
 
 interface Props {
   queue: QueueModel;
+  position?: number | null;
   onSkip?: (queue: QueueModel) => void;
   onRecall?: (queue: QueueModel) => void;
   onComplete?: (queue: QueueModel) => void;
   isActive?: boolean;
 }
 
-export const QueueListItem: React.FC<Props> = ({
+/** Baris antrean di dashboard petugas — nomor, nama, badge status, aksi. */
+export function QueueListItem({
   queue,
+  position,
   onSkip,
   onRecall,
   onComplete,
-  isActive,
-}) => (
-  <View style={[styles.card, isActive && styles.cardActive]}>
-    <View style={styles.left}>
-      <Text style={[styles.number, isActive && styles.numberActive]}>
-        {queue.queueNumber}
-      </Text>
-      <Text style={styles.name}>{queue.patientName}</Text>
-    </View>
-    <View style={styles.right}>
-      <StatusBadge status={queue.status} size="sm" />
-      {(queue.status === 'CALLED' || queue.status === 'SERVING') && (
-        <View style={styles.actions}>
-          {onRecall && (
-            <TouchableOpacity style={[styles.actionBtn, styles.recallBtn]} onPress={() => onRecall(queue)}>
-              <Text style={styles.actionText}>Panggil Ulang</Text>
-            </TouchableOpacity>
-          )}
-          {onComplete && (
-            <TouchableOpacity style={[styles.actionBtn, styles.completeBtn]} onPress={() => onComplete(queue)}>
-              <Text style={styles.actionText}>Selesai</Text>
-            </TouchableOpacity>
-          )}
+  isActive = false,
+}: Props) {
+  const c = useColors();
+
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: isActive ? c.primaryContainer : c.surface,
+          borderColor: isActive ? c.primary : c.cardBorder,
+          shadowColor: c.primaryDeep,
+        },
+      ]}
+    >
+      {position != null ? (
+        <View
+          style={[
+            styles.seq,
+            {
+              backgroundColor: isActive ? c.primary : c.surfaceSoft,
+              borderColor: isActive ? c.primary : c.outlineVariant,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.seqText, { color: isActive ? c.onPrimary : c.onSurfaceVariant }]}
+          >
+            {position}
+          </Text>
         </View>
-      )}
-      {queue.status === 'WAITING' && onSkip && (
-        <TouchableOpacity style={[styles.actionBtn, styles.skipBtn]} onPress={() => onSkip(queue)}>
-          <Text style={[styles.actionText, { color: Colors.error }]}>Lewati</Text>
-        </TouchableOpacity>
-      )}
+      ) : null}
+
+      <View style={styles.left}>
+        <Text
+          style={[
+            styles.number,
+            { color: isActive ? c.onPrimaryContainer : c.onSurface },
+          ]}
+        >
+          {queue.queueNumber}
+        </Text>
+        <Text
+          style={[
+            styles.name,
+            { color: isActive ? c.onPrimaryContainer : c.onSurfaceVariant },
+          ]}
+          numberOfLines={1}
+        >
+          {queue.patientName}
+        </Text>
+      </View>
+
+      <View style={styles.right}>
+        <StatusBadge status={queue.status} size="sm" />
+
+        {queue.status === 'CALLED' || queue.status === 'SERVING' ? (
+          <View style={styles.actions}>
+            {onRecall ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, { borderColor: c.primary }]}
+                onPress={() => onRecall(queue)}
+                accessibilityRole="button"
+                accessibilityLabel={`Panggil ulang ${queue.queueNumber}`}
+              >
+                <Text style={[styles.actionText, { color: c.primary }]}>Ulang</Text>
+              </TouchableOpacity>
+            ) : null}
+            {onComplete ? (
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: c.secondary, borderColor: c.secondary }]}
+                onPress={() => onComplete(queue)}
+                accessibilityRole="button"
+                accessibilityLabel={`Selesaikan ${queue.queueNumber}`}
+              >
+                <Text style={[styles.actionText, { color: c.onSecondary }]}>Selesai</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
+
+        {queue.status === 'WAITING' && onSkip ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, { borderColor: c.error }]}
+            onPress={() => onSkip(queue)}
+            accessibilityRole="button"
+            accessibilityLabel={`Lewati ${queue.queueNumber}`}
+          >
+            <Text style={[styles.actionText, { color: c.error }]}>Lewati</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
-  </View>
-);
+  );
+}
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 12,
-    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
     elevation: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
   },
-  cardActive: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surfaceVariant,
+  seq: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  left: { flex: 1 },
-  right: { alignItems: 'flex-end', gap: 6 },
-  number: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
-  numberActive: { color: Colors.primary },
-  name: { fontSize: 12, color: Colors.onSurfaceVariant },
-  actions: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  seqText: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  left: { flex: 1, minWidth: 0 },
+  number: { fontSize: 16, fontWeight: '800', letterSpacing: 0.4, lineHeight: 22 },
+  name: { fontSize: 12, marginTop: 1, lineHeight: 16 },
+  right: { alignItems: 'flex-end', gap: 6, flexShrink: 0 },
+  actions: { flexDirection: 'row', gap: 6 },
   actionBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.outlineVariant,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    minHeight: 32,
+    justifyContent: 'center',
   },
-  recallBtn: { borderColor: Colors.primary },
-  completeBtn: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
-  skipBtn: { borderColor: Colors.error },
-  actionText: { fontSize: 11, fontWeight: '600', color: Colors.primary },
+  actionText: { fontSize: 11, fontWeight: '700', lineHeight: 14 },
 });
