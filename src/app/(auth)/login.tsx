@@ -11,9 +11,9 @@ import { AuthScreen } from "../../components/ui/AuthScreen";
 import { FormField } from "../../components/ui/FormField";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import type { UserRole } from "../../core/models";
-import { useAuthStore } from "../../stores/auth.store";
 import { useColors } from "../../core/theme/ThemeContext";
 import { authService, getAuthErrorMessage } from "../../services/auth.service";
+import { useAuthStore } from "../../stores/auth.store";
 
 // PRD: pasien & petugas masuk lewat form yang sama (F-P01, F-ST01).
 // Peran ditentukan dari data akun di Firestore, bukan dipilih di layar ini.
@@ -134,6 +134,7 @@ export default function LoginScreen() {
       />
 
       <PrimaryButton label="Masuk" onPress={handleLogin} loading={loading} />
+      
 
       <View style={[styles.divider, { backgroundColor: c.outlineVariant }]} />
 

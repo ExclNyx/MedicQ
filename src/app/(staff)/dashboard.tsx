@@ -13,34 +13,20 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { OutlineButton } from '../../components/ui/OutlineButton';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { StaffHeader } from '../../components/ui/StaffHeader';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { DEFAULT_SERVICES } from '../../core/constants/services';
-import type { QueueModel, RegistrationModel } from '../../core/models';
 import { useColors } from '../../core/theme/ThemeContext';
 import { useStaffQueue } from '../../hooks/useStaffQueue';
-import { useQueueStore } from '../../stores/queue.store';
-import { useAuthStore } from '../../stores/auth.store';
 import { authService } from '../../services/auth.service';
 import { queueService } from '../../services/queue.service';
+import { useAuthStore } from '../../stores/auth.store';
+import { useQueueStore } from '../../stores/queue.store';
 
 const MENU_ITEMS = [
-  {
-    slug: 'pendaftaran',
-    title: 'Pendaftaran',
-    description: 'Melihat pasien yang mendaftar melalui aplikasi.',
-    icon: 'document-text-outline' as const,
-    group: 'pelayanan',
-  },
-  {
-    slug: 'registrasi-pasien',
-    title: 'Registrasi Pasien',
-    description: 'Mendaftarkan pasien yang datang langsung ke fasilitas.',
-    icon: 'person-add-outline' as const,
-    group: 'pelayanan',
-  },
+
   {
     slug: 'cari-pasien',
     title: 'Cari Pasien',
@@ -109,11 +95,6 @@ const MENU_ITEMS = [
 type MenuGroup = 'pelayanan' | 'pasien' | 'antrian' | 'laporan';
 
 const GROUPS: Array<{ key: MenuGroup; title: string; subtitle: string }> = [
-  {
-    key: 'pelayanan',
-    title: 'Pelayanan Pasien',
-    subtitle: 'Pendaftaran dari aplikasi dan kedatangan langsung',
-  },
   {
     key: 'pasien',
     title: 'Data & Verifikasi',
