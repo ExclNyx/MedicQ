@@ -1,40 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PatientHeader } from "../../components/ui/PatientHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { QueueStatus } from "../../core/models";
 import { useColors } from "../../core/theme/ThemeContext";
-
-interface QueueItem {
-  id: string;
-  queueNumber: string;
-  status: QueueStatus;
-}
-
-const MY_QUEUE: QueueItem & {
-  serviceName: string;
-  patientName: string;
-  position: number;
-} = {
-  id: "1",
-  queueNumber: "A-027",
-  status: "WAITING",
-  serviceName: "Poli Umum",
-  patientName: "Andi",
-  position: 2,
-};
-
-const waitingList: QueueItem[] = [
-  { id: "q1", queueNumber: "A-025", status: "SERVING" },
-  { id: "q2", queueNumber: "A-026", status: "WAITING" },
-  { id: "1", queueNumber: "A-027", status: "WAITING" },
-  { id: "q4", queueNumber: "A-028", status: "WAITING" },
-];
+import { useAuthStore } from "../../stores/auth.store";
+import { usePatientQueue } from "../../hooks/usePatientQueue";
 
 export default function QueueStatusScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
+  
+  const { myQueue, serviceQueues, position, currentServing, isLoading, error } = usePatientQueue(user?.uid);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <ActivityIndicator size="large" color={c.primary} />
+        <Text style={{ color: c.onSurfaceVariant, marginTop: 12 }}>Memuat status antrean…</Text>
+      </View>
+    );
+  }
+
+  if (!myQueue) {
+    return (
+      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Ionicons name="alert-circle-outline" size={36} color={c.primary} />
+        <Text style={{ color: c.onSurface, textAlign: 'center', fontWeight: '700', marginTop: 12 }}>
+          {error ? 'Status antrean belum dapat dimuat' : 'Anda belum memiliki nomor antrean.'}
+        </Text>
+        {error ? <Text style={{ color: c.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>{error}</Text> : null}
+        <TouchableOpacity onPress={() => router.replace('/(auth)/patient-access')} style={{ marginTop: 18, padding: 12 }}>
+          <Text style={{ color: c.primary, fontWeight: '700' }}>Kembali ke akses pasien</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Waiting list is all queues except completed/skipped
+  const waitingList = serviceQueues
+    .filter((q) => q.status !== 'COMPLETED' && q.status !== 'SKIPPED')
+    .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+    .slice(0, 10); // Show max 10 queues for performance
 
   return (
     <View style={[styles.flex, { backgroundColor: c.background }]}>
@@ -47,7 +57,7 @@ export default function QueueStatusScreen() {
       >
         <PatientHeader
           title="Status Antrean"
-          subtitle={`${MY_QUEUE.serviceName} · Kunjungan hari ini`}
+          subtitle={`${myQueue.serviceName} · Kunjungan hari ini`}
         />
 
         <View style={styles.body}>
@@ -66,9 +76,9 @@ export default function QueueStatusScreen() {
               Nomor Anda
             </Text>
             <Text style={[styles.number, { color: c.primary }]}>
-              {MY_QUEUE.queueNumber}
+              {myQueue.queueNumber}
             </Text>
-            <StatusBadge status={MY_QUEUE.status} />
+            <StatusBadge status={myQueue.status} />
 
             <View
               style={[styles.divider, { backgroundColor: c.outlineVariant }]}
@@ -80,7 +90,7 @@ export default function QueueStatusScreen() {
                   Posisi
                 </Text>
                 <Text style={[styles.statValue, { color: c.onSurface }]}>
-                  {MY_QUEUE.position}
+                  {position ?? '-'}
                 </Text>
                 <Text style={[styles.statUnit, { color: c.onSurfaceVariant }]}>
                   di depan
@@ -94,10 +104,10 @@ export default function QueueStatusScreen() {
                   Dilayani
                 </Text>
                 <Text style={[styles.statValue, { color: c.onSurface }]}>
-                  A-025
+                  {currentServing?.queueNumber ?? '-'}
                 </Text>
                 <Text style={[styles.statUnit, { color: c.onSurfaceVariant }]}>
-                  Poli Umum
+                  {myQueue.serviceName}
                 </Text>
               </View>
               <View
@@ -108,7 +118,7 @@ export default function QueueStatusScreen() {
                   Estimasi
                 </Text>
                 <Text style={[styles.statValue, { color: c.onSurface }]}>
-                  ~15
+                  {position ? `~${position * 10}` : '-'}
                 </Text>
                 <Text style={[styles.statUnit, { color: c.onSurfaceVariant }]}>
                   menit
@@ -137,7 +147,7 @@ export default function QueueStatusScreen() {
               Daftar Antrean
             </Text>
             <Text style={[styles.sectionSub, { color: c.onSurfaceVariant }]}>
-              {MY_QUEUE.serviceName}
+              {myQueue.serviceName}
             </Text>
           </View>
 
@@ -148,7 +158,7 @@ export default function QueueStatusScreen() {
             ]}
           >
             {waitingList.map((q, index) => {
-              const isMe = q.id === MY_QUEUE.id;
+              const isMe = q.id === myQueue.id;
               const isLast = index === waitingList.length - 1;
               return (
                 <View

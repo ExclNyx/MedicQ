@@ -1,37 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PatientHeader } from "../../components/ui/PatientHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import type { QueueStatus } from "../../core/models";
+import type { RegistrationModel } from "../../core/models";
 import { useColors } from "../../core/theme/ThemeContext";
-
-interface HistoryItem {
-  id: string;
-  visitDate: string; // YYYY-MM-DD
-  status: QueueStatus;
-  serviceName: string;
-  complaints: string[];
-}
-
-const HISTORY: HistoryItem[] = [
-  {
-    id: "1",
-    visitDate: "2026-10-10",
-    status: "COMPLETED",
-    serviceName: "Poli Umum",
-    complaints: ["Demam", "Pusing"],
-  },
-  {
-    id: "2",
-    visitDate: "2026-09-01",
-    status: "COMPLETED",
-    serviceName: "Poli Gigi",
-    complaints: ["Sakit Gigi"],
-  },
-];
+import { useAuthStore } from "../../stores/auth.store";
+import { registrationService } from "../../services/registration.service";
 
 /** Parse "YYYY-MM-DD" sebagai tanggal lokal (hindari geser timezone UTC). */
 function parseLocalDate(value: string): Date {
@@ -42,6 +20,44 @@ function parseLocalDate(value: string): Date {
 export default function HistoryScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
+  
+  const [history, setHistory] = useState<RegistrationModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+
+    registrationService.getHistory(user.uid)
+      .then((items) => {
+        if (active) setHistory(items);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const code = (error as Error & { code?: string })?.code;
+        setLoadError(
+          code === 'permission-denied'
+            ? 'Akses riwayat ditolak oleh Firestore Rules.'
+            : 'Riwayat tidak dapat dimuat. Periksa koneksi internet dan konfigurasi Firebase.',
+        );
+        setHistory([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
 
   return (
     <View style={[styles.flex, { backgroundColor: c.background }]}>
@@ -52,7 +68,7 @@ export default function HistoryScreen() {
       />
 
       <FlatList
-        data={HISTORY}
+        data={history}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.list,
@@ -61,7 +77,7 @@ export default function HistoryScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <Text style={[styles.count, { color: c.onSurfaceVariant }]}>
-            {HISTORY.length} kunjungan tercatat
+            {loading ? "Memuat..." : `${history.length} kunjungan tercatat`}
           </Text>
         }
         ListEmptyComponent={
@@ -75,7 +91,7 @@ export default function HistoryScreen() {
               Belum ada riwayat
             </Text>
             <Text style={[styles.emptyText, { color: c.onSurfaceVariant }]}>
-              Kunjungan yang sudah selesai akan muncul di sini.
+              {loadError ?? 'Kunjungan yang sudah selesai akan muncul di sini.'}
             </Text>
           </View>
         }
@@ -118,7 +134,11 @@ export default function HistoryScreen() {
                       {dateLabel}
                     </Text>
                   </View>
-                  <StatusBadge status={item.status} size="sm" />
+                  <View style={[styles.badge, { backgroundColor: item.status === 'CANCELLED' ? c.statusSkippedBg : c.statusCompletedBg }]}>
+                    <Text style={{ fontSize: 11, color: item.status === 'CANCELLED' ? c.statusSkipped : c.statusCompleted, fontWeight: '600' }}>
+                      {item.status === 'CANCELLED' ? 'Dibatalkan' : 'Selesai'}
+                    </Text>
+                  </View>
                 </View>
 
                 <View

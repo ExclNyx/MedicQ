@@ -1,13 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OutlineButton } from "../../components/ui/OutlineButton";
 import { PatientHeader } from "../../components/ui/PatientHeader";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { useColors } from "../../core/theme/ThemeContext";
-
-const PATIENT_NAME = "Andi";
+import { useAuthStore } from "../../stores/auth.store";
+import { registrationService } from "../../services/registration.service";
 
 const STEPS = [
   {
@@ -30,13 +31,27 @@ const STEPS = [
 export default function RegisterVisitScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
-    Alert.alert(
-      "Berhasil (UI Demo)",
-      "Pendaftaran berhasil. Silakan menuju meja petugas untuk verifikasi.",
-      [{ text: "OK", onPress: () => router.back() }],
-    );
+  const handleSubmit = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      await registrationService.createRegistration({
+        patientId: user.uid,
+        patientName: user.displayName,
+      });
+      Alert.alert(
+        "Berhasil",
+        "Pendaftaran berhasil. Silakan menuju meja petugas untuk verifikasi.",
+        [{ text: "OK", onPress: () => router.back() }],
+      );
+    } catch (e: any) {
+      Alert.alert("Gagal", e?.message || "Terjadi kesalahan saat mendaftar.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,7 +96,7 @@ export default function RegisterVisitScreen() {
                 Nama Pasien
               </Text>
               <Text style={[styles.identityName, { color: c.onSurface }]}>
-                {PATIENT_NAME}
+                {user?.displayName || "Pasien"}
               </Text>
               <View style={styles.identityTag}>
                 <Ionicons name="leaf-outline" size={12} color={c.primary} />
@@ -162,7 +177,7 @@ export default function RegisterVisitScreen() {
             </Text>
           </View>
 
-          <PrimaryButton label="YA, DAFTAR SEKARANG" onPress={handleSubmit} />
+          <PrimaryButton label="YA, DAFTAR SEKARANG" onPress={handleSubmit} loading={loading} />
           <OutlineButton
             label="Batal"
             tone="danger"

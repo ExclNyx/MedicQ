@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<
   { label: string; colorKey: ColorKey; bgKey: ColorKey }
 > = {
   WAITING: { label: 'Menunggu', colorKey: 'statusWaiting', bgKey: 'statusWaitingBg' },
-  CALLED: { label: 'Dipanggil', colorKey: 'statusCalled', bgKey: 'statusCalledBg' },
+  CALLED: { label: 'Sedang Dilayani', colorKey: 'statusCalled', bgKey: 'statusCalledBg' },
   SERVING: { label: 'Dilayani', colorKey: 'statusServing', bgKey: 'statusServingBg' },
   COMPLETED: { label: 'Selesai', colorKey: 'statusCompleted', bgKey: 'statusCompletedBg' },
   SKIPPED: { label: 'Dilewati', colorKey: 'statusSkipped', bgKey: 'statusSkippedBg' },

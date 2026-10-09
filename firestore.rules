@@ -1,58 +1,104 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Fungsi bantuan untuk cek role
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userRole() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return userRole() == 'admin';
+    }
+
     function isStaffOrAdmin() {
-      return request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+      return userRole() == 'staff' || userRole() == 'admin';
     }
-    
-    // User profile
+
+    // USERS: patient signup can only create their own patient profile.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSelf(userId) || isStaffOrAdmin();
+
+      allow create: if isSelf(userId)
+        && request.resource.data.role == 'patient';
+
+      allow update: if isAdmin()
+        || (
+          isSelf(userId)
+          && request.resource.data.role == resource.data.role
+        );
+
+      allow delete: if isAdmin();
     }
-    
-    // Patient data
+
+    // PATIENT PROFILES
     match /patients/{patientId} {
-      allow read: if request.auth != null; // Petugas bisa baca, pasien bisa baca miliknya
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (request.auth.uid == patientId || isStaffOrAdmin());
+      allow read: if isSelf(patientId) || isStaffOrAdmin();
+      allow create: if isSelf(patientId) || isStaffOrAdmin();
+      allow update: if isSelf(patientId) || isStaffOrAdmin();
+      allow delete: if isAdmin();
     }
-    
-    // Registrations
-    match /registrations/{regId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (request.resource.data.patientId == request.auth.uid || isStaffOrAdmin());
+
+    // REGISTRATIONS
+    match /registrations/{registrationId} {
+      allow read: if isStaffOrAdmin()
+        || (signedIn() && resource.data.patientId == request.auth.uid);
+
+      allow create: if isStaffOrAdmin()
+        || (
+          signedIn()
+          && request.resource.data.patientId == request.auth.uid
+          && request.resource.data.status == 'REGISTRATION_PENDING'
+        );
+
+      allow update: if isStaffOrAdmin()
+        || (
+          signedIn()
+          && resource.data.patientId == request.auth.uid
+          && request.resource.data.patientId == resource.data.patientId
+          && request.resource.data.status in ['REGISTRATION_PENDING', 'CANCELLED']
+        );
+
+      allow delete: if isAdmin();
     }
-    
-    // Services / Poli
+
+    // SERVICE / POLI definitions have no patient-specific private fields.
     match /services/{serviceId} {
-      allow read: if true; // Publik (termasuk display TV) bisa baca list poli
+      allow read: if true;
       allow write: if isStaffOrAdmin();
     }
-    
-    // Queues
+
+    // NOTE FOR PRESENTATION: queue queries show queue numbers from the same
+    // service to multiple patients, so read is temporarily public in this MVP.
+    // Queue documents must not contain NIK, email, or complaint details.
+    // For production, move display-safe values to a separate public_queues collection.
     match /queues/{queueId} {
-      allow read: if true; // Publik (display TV dan pasien) butuh baca antrean
-      allow create: if isStaffOrAdmin(); // Hanya petugas yg buat antrean
-      allow update: if isStaffOrAdmin(); // Hanya petugas yg update status antrean
+      allow read: if true;
+      allow create, update: if isStaffOrAdmin();
+      allow delete: if isAdmin();
     }
-    
-    // Queue Counters (atomic increment)
+
     match /queue_counters/{counterId} {
       allow read, write: if isStaffOrAdmin();
     }
-    
-    // Notifications
-    match /notifications/{notifId} {
-      allow read: if request.auth != null && resource.data.patientId == request.auth.uid;
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn()
+        && resource.data.patientId == request.auth.uid;
       allow create: if isStaffOrAdmin();
-      allow update: if request.auth != null && resource.data.patientId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.patientId == request.auth.uid;
+      allow delete: if isAdmin();
     }
   }
 }

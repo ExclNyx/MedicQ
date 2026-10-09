@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
@@ -19,15 +19,23 @@ import { StaffHeader } from '../../components/ui/StaffHeader';
 import { COMPLAINT_OPTIONS } from '../../core/constants/complaints';
 import { DEFAULT_SERVICES } from '../../core/constants/services';
 import { useColors } from '../../core/theme/ThemeContext';
+import { useAuthStore } from '../../stores/auth.store';
+import { registrationService } from '../../services/registration.service';
+import { queueService } from '../../services/queue.service';
+import { useQueueStore } from '../../stores/queue.store';
 
 export default function ComplaintFormScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { regId } = useLocalSearchParams();
+  const { user } = useAuthStore();
+  const { verifiedRegistrations } = useQueueStore();
 
   const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const toggleComplaint = (label: string) => {
     setSelectedComplaints((prev) =>
@@ -35,19 +43,47 @@ export default function ComplaintFormScreen() {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedService) {
       setError('Pilih poli tujuan terlebih dahulu.');
       return;
     }
     setError(null);
+    if (!regId || typeof regId !== 'string' || !user?.uid) return;
 
     const svc = DEFAULT_SERVICES.find((s) => s.id === selectedService);
-    Alert.alert(
-      'Nomor Antrean Dibuat (UI Demo)',
-      `Pasien masuk ke ${svc?.name}.\n\nNomor Antrean: A-029\n\nSaat Firestore terhubung, nomor ini otomatis tampil di aplikasi pasien & display TV.`,
-      [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }],
-    );
+    if (!svc) return;
+
+    setLoading(true);
+    try {
+      await registrationService.updateComplaints({
+        registrationId: regId,
+        staffId: user.uid,
+        complaints: selectedComplaints,
+        complaintNote: note
+      });
+
+      const reg = verifiedRegistrations.find(r => r.id === regId);
+      if (!reg) throw new Error('Registrasi tidak ditemukan di state lokal.');
+
+      const queue = await queueService.assignQueue({
+        registrationId: reg.id,
+        patientId: reg.patientId,
+        patientName: reg.patientName,
+        serviceId: svc.id,
+        serviceName: svc.name,
+      });
+
+      Alert.alert(
+        'Nomor Antrean Dibuat',
+        `Pasien masuk ke ${svc.name}.\n\nNomor Antrean: ${queue.queueNumber}`,
+        [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }],
+      );
+    } catch (e: any) {
+      Alert.alert('Gagal', e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -202,7 +238,7 @@ export default function ComplaintFormScreen() {
             ) : null}
           </View>
 
-            <PrimaryButton label="BUAT NOMOR ANTREAN" onPress={handleSubmit} />
+            <PrimaryButton label="BUAT NOMOR ANTREAN" onPress={handleSubmit} loading={loading} />
             <OutlineButton
               label="Kembali"
               icon="chevron-back"

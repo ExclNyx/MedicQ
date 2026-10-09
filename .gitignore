@@ -1,50 +1,103 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ================================
+# Node / JavaScript dependencies
+# ================================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Expo
+# ================================
+# Expo / React Native build output
+# ================================
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Generated native folders (Expo managed workflow)
+# Remove these two lines if you intentionally maintain native projects in Git.
+/android/
+/ios/
 
-# Metro
-.metro-health-check*
+# ================================
+# Local environment variables
+# Keep the example template, never commit real local .env values.
+# ================================
+.env
+.env.*
+!.env.example
+!.env.sample
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
+# ================================
+# Secrets, private keys, certificates
+# ================================
 *.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.provisionprofile
+*.p8
 
-# local env files
-.env*.local
+# Firebase Admin SDK / service-account credentials
+serviceAccount*.json
+service-account*.json
+*service-account*.json
+*firebase-adminsdk*.json
+firebase-adminsdk-*.json
 
-# typescript
-*.tsbuildinfo
+# Common secret/credential files (only if they contain real credentials)
+secrets.json
+credentials.json
+.env.credentials
 
-example
+# ================================
+# Logs and debug output
+# ================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+expo-debug.log*
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
 
-# generated native folders
-/ios
-/android
+# Firebase local cache / emulator runtime data
+.firebase/
 
-#gitignore
-#AI / editor local — jangan di-commit
-.claude/
-.agents/
-AGENTS.md
-skills-lock.json
+# ================================
+# Operating system / editor files
+# ================================
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ================================
+# Test / coverage / temporary files
+# ================================
+coverage/
+.nyc_output/
+*.tmp
+*.temp
+*.bak
+
+# ================================
+# Notes about Firebase client config:
+# google-services.json and GoogleService-Info.plist are client configuration,
+# not Firebase Admin service-account private keys. They are not ignored here
+# by default because some native builds need them. If you intentionally want
+# to keep these files out of the repository, uncomment these lines:
+# google-services.json
+# **/google-services.json
+# GoogleService-Info.plist
+
+# File arsip lokal
+/MedicQ.zip

@@ -11,26 +11,16 @@ import { AuthScreen } from "../../components/ui/AuthScreen";
 import { FormField } from "../../components/ui/FormField";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import { useColors } from "../../core/theme/ThemeContext";
+import { authService, getAuthErrorMessage } from "../../services/auth.service";
 
 type Field = "name" | "email" | "password" | "confirm";
 type Values = Record<Field, string>;
 type Errors = Partial<Record<Field, string>>;
 
-/** Urutan fokus saat submit gagal validasi — field error pertama yang di-focus. */
 const FIELD_ORDER: Field[] = ["name", "email", "password", "confirm"];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
-
-// TODO (tim backend): ganti dengan
-// authService.registerPatient(email, password, displayName)  (PRD F-P01)
-async function registerDemo(
-  _name: string,
-  _email: string,
-  _password: string,
-): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-}
 
 function validate(values: Values): Errors {
   const errors: Errors = {};
@@ -106,14 +96,14 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await registerDemo(
-        values.name.trim(),
+      await authService.registerPatient(
         values.email.trim(),
         values.password,
+        values.name.trim(),
       );
       router.replace("/(auth)/complete-profile");
-    } catch {
-      setFormError("Pendaftaran gagal. Silakan coba lagi.");
+    } catch (error) {
+      setFormError(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
     }

@@ -1,46 +1,80 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OutlineButton } from '../../components/ui/OutlineButton';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { StaffHeader } from '../../components/ui/StaffHeader';
 import { useColors } from '../../core/theme/ThemeContext';
-
-// DUMMY DATA — UI demo (diisi dari route params saat Firestore sudah siap)
-const PATIENT = {
-  nik: '3374123456789012',
-  fullName: 'Budi Santoso',
-  dateOfBirth: '10 Januari 1990',
-  gender: 'Laki-laki',
-  address: 'Jl. Merdeka No. 123, Semarang',
-  phoneNumber: '081234567890',
-  complaints: ['Demam', 'Batuk / Pilek'],
-  complaintNote: 'Demam sejak 2 hari lalu',
-  isManual: false,
-};
-
-const IDENTITY_ROWS: { label: string; value: string }[] = [
-  { label: 'NIK', value: PATIENT.nik },
-  { label: 'Nama Lengkap', value: PATIENT.fullName },
-  { label: 'Tanggal Lahir', value: PATIENT.dateOfBirth },
-  { label: 'Jenis Kelamin', value: PATIENT.gender },
-  { label: 'Alamat', value: PATIENT.address },
-  { label: 'No. HP', value: PATIENT.phoneNumber },
-];
+import { patientService } from '../../services/patient.service';
+import { registrationService } from '../../services/registration.service';
+import { PatientModel } from '../../core/models';
+import { useAuthStore } from '../../stores/auth.store';
 
 export default function PatientDetailScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
+  const { id, regId } = useLocalSearchParams();
+  const { user } = useAuthStore();
 
-  const handleVerify = () => {
-    Alert.alert('Identitas Terverifikasi', 'Lanjut pencatatan keluhan & penentuan poli.', [
-      {
-        text: 'Lanjut',
-        onPress: () => router.push('/(staff)/complaint-form'),
-      },
-    ]);
+  const [patient, setPatient] = useState<PatientModel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id || typeof id !== 'string') return;
+    patientService.getProfile(id).then(p => {
+      setPatient(p);
+      setLoading(false);
+    }).catch(err => {
+      Alert.alert('Gagal', 'Gagal memuat profil pasien');
+      setLoading(false);
+    });
+  }, [id]);
+
+  const handleVerify = async () => {
+    if (!regId || typeof regId !== 'string' || !user?.uid) return;
+    setVerifyLoading(true);
+    try {
+      await registrationService.verifyPatient(regId, user.uid);
+      Alert.alert('Identitas Terverifikasi', 'Lanjut pencatatan keluhan & penentuan poli.', [
+        {
+          text: 'Lanjut',
+          onPress: () => router.replace(`/(staff)/complaint-form?regId=${regId}`),
+        },
+      ]);
+    } catch (e: any) {
+      Alert.alert('Gagal', e.message);
+    } finally {
+      setVerifyLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{color: c.onSurface}}>Memuat...</Text>
+      </View>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{color: c.onSurface}}>Pasien tidak ditemukan</Text>
+      </View>
+    );
+  }
+
+  const IDENTITY_ROWS: { label: string; value: string }[] = [
+    { label: 'NIK', value: patient.nik },
+    { label: 'Nama Lengkap', value: patient.fullName },
+    { label: 'Tanggal Lahir', value: `${patient.dateOfBirth.getDate().toString().padStart(2, '0')}-${(patient.dateOfBirth.getMonth()+1).toString().padStart(2, '0')}-${patient.dateOfBirth.getFullYear()}` },
+    { label: 'Jenis Kelamin', value: patient.gender === 'male' ? 'Laki-laki' : 'Perempuan' },
+    { label: 'Alamat', value: patient.address },
+    { label: 'No. HP', value: patient.phoneNumber },
+  ];
 
   return (
     <View style={[styles.flex, { backgroundColor: c.background }]}>
@@ -71,31 +105,31 @@ export default function PatientDetailScreen() {
                 Nama Pasien
               </Text>
               <Text style={[styles.identityName, { color: c.onSurface }]}>
-                {PATIENT.fullName}
+                {patient.fullName}
               </Text>
               <View style={styles.tagRow}>
                 <View
                   style={[
                     styles.tag,
                     {
-                      backgroundColor: PATIENT.isManual ? c.surfaceSoft : c.primaryContainer,
+                      backgroundColor: c.primaryContainer,
                     },
                   ]}
                 >
                   <Ionicons
-                    name={PATIENT.isManual ? 'document-text-outline' : 'phone-portrait-outline'}
+                    name={'phone-portrait-outline'}
                     size={12}
-                    color={PATIENT.isManual ? c.onSurfaceVariant : c.primary}
+                    color={c.primary}
                   />
                   <Text
                     style={[
                       styles.tagText,
                       {
-                        color: PATIENT.isManual ? c.onSurfaceVariant : c.onPrimaryContainer,
+                        color: c.onPrimaryContainer,
                       },
                     ]}
                   >
-                    {PATIENT.isManual ? 'Registrasi Manual' : 'Melalui Aplikasi'}
+                    {'Melalui Aplikasi'}
                   </Text>
                 </View>
               </View>
@@ -137,44 +171,7 @@ export default function PatientDetailScreen() {
             ))}
           </View>
 
-          {/* Keluhan pasien */}
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: c.surface, borderColor: c.cardBorder },
-            ]}
-          >
-            <Text style={[styles.cardTitle, { color: c.onSurface }]}>
-              Keluhan Dipilih Pasien
-            </Text>
-            <View style={styles.chipWrap}>
-              {PATIENT.complaints.map((label) => (
-                <View
-                  key={label}
-                  style={[styles.chip, { backgroundColor: c.primaryContainer }]}
-                >
-                  <Text style={[styles.chipText, { color: c.onPrimaryContainer }]}>
-                    {label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            {PATIENT.complaintNote ? (
-              <View
-                style={[
-                  styles.noteBox,
-                  { backgroundColor: c.surfaceSoft, borderLeftColor: c.primary },
-                ]}
-              >
-                <Ionicons name="document-text-outline" size={16} color={c.primary} />
-                <Text style={[styles.noteText, { color: c.onSurfaceVariant }]}>
-                  {PATIENT.complaintNote}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          <PrimaryButton label="VERIFIKASI & LANJUT" onPress={handleVerify} />
+          <PrimaryButton label="VERIFIKASI & LANJUT" onPress={handleVerify} loading={verifyLoading} />
           <OutlineButton
             label="Kembali"
             icon="chevron-back"

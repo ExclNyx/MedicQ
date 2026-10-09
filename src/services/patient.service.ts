@@ -1,5 +1,5 @@
+import { Gender, PatientModel } from '../core/models';
 import { patientRepository } from '../repositories/patient.repository';
-import { PatientModel, Gender } from '../core/models';
 
 export interface CreatePatientInput {
   nik: string;
@@ -8,6 +8,7 @@ export interface CreatePatientInput {
   gender: Gender;
   address: string;
   phoneNumber: string;
+  medicalRecordNumber?: string;
 }
 
 export class PatientService {
@@ -26,7 +27,18 @@ export class PatientService {
     return patientRepository.searchByNik(nik);
   }
 
-  // Mask NIK for display (show last 4 only)
+  async search(term: string): Promise<PatientModel[]> {
+    return patientRepository.search(term);
+  }
+
+  async listAll(): Promise<PatientModel[]> {
+    return patientRepository.listAll();
+  }
+
+  async delete(patientId: string): Promise<void> {
+    return patientRepository.delete(patientId);
+  }
+
   maskNik(nik: string): string {
     if (!nik || nik.length < 4) return '****';
     return '*'.repeat(nik.length - 4) + nik.slice(-4);

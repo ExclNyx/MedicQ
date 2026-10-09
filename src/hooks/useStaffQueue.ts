@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useQueueStore } from '../stores/queue.store';
 import { registrationRepository } from '../repositories/registration.repository';
 import { queueRepository } from '../repositories/queue.repository';
-import firestore from '@react-native-firebase/firestore';
-import { Collections, fromFirestore } from '../core/config/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db, Collections, fromFirestore } from '../core/config/firebase';
 import { ServiceModel } from '../core/models';
 
 export const useStaffQueue = (selectedServiceId: string) => {
@@ -20,25 +20,37 @@ export const useStaffQueue = (selectedServiceId: string) => {
 
   useEffect(() => {
     // Listen to pending registrations
-    const pendingUnsub = registrationRepository.listenPending((regs) => {
-      setPendingRegistrations(regs);
-    });
+    const pendingUnsub = registrationRepository.listenPending(
+      (regs) => setPendingRegistrations(regs),
+      (error) => {
+        setPendingRegistrations([]);
+        console.warn('[MedicQ] Pendaftaran pending tidak tersedia:', error.message);
+      },
+    );
 
     // Listen to verified registrations
-    const verifiedUnsub = registrationRepository.listenVerified((regs) => {
-      setVerifiedRegistrations(regs);
-    });
+    const verifiedUnsub = registrationRepository.listenVerified(
+      (regs) => setVerifiedRegistrations(regs),
+      (error) => {
+        setVerifiedRegistrations([]);
+        console.warn('[MedicQ] Pendaftaran terverifikasi tidak tersedia:', error.message);
+      },
+    );
 
     // Listen to services
-    const servicesUnsub = firestore()
-      .collection(Collections.SERVICES)
-      .where('isActive', '==', true)
-      .onSnapshot((snap) => {
-        const items = snap.docs.map(
-          (d) => ({ id: d.id, ...fromFirestore(d.data()) } as unknown as ServiceModel)
-        );
-        setServices(items);
-      });
+    const q = query(
+      collection(db, Collections.SERVICES),
+      where('isActive', '==', true)
+    );
+    const servicesUnsub = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(
+        (d) => ({ id: d.id, ...fromFirestore(d.data()) } as unknown as ServiceModel)
+      );
+      setServices(items);
+    }, (error) => {
+      setServices([]);
+      console.warn('[MedicQ] Daftar poli tidak tersedia:', error.message);
+    });
 
     return () => {
       pendingUnsub();
@@ -49,9 +61,14 @@ export const useStaffQueue = (selectedServiceId: string) => {
 
   useEffect(() => {
     if (!selectedServiceId) return;
-    const unsub = queueRepository.listenAllByServiceToday(selectedServiceId, (queues) => {
-      setStaffServiceQueues(queues);
-    });
+    const unsub = queueRepository.listenAllByServiceToday(
+      selectedServiceId,
+      (queues) => setStaffServiceQueues(queues),
+      (error) => {
+        setStaffServiceQueues([]);
+        console.warn('[MedicQ] Antrean poli tidak tersedia:', error.message);
+      },
+    );
     return () => unsub();
   }, [selectedServiceId]);
 

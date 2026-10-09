@@ -6,6 +6,8 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '../../core/theme/ThemeContext';
 import { ThemeToggle } from './ThemeToggle';
+import { authService } from '../../services/auth.service';
+import { useAuthStore } from '../../stores/auth.store';
 
 interface StaffHeaderProps {
   title: string;
@@ -44,12 +46,18 @@ export function StaffHeader({
     else if (router.canGoBack()) router.back();
   };
 
+  const handleLogout = async () => {
+    await authService.signOut();
+    useAuthStore.getState().setUser(null);
+    router.replace('/(auth)/login');
+  };
+
   const defaultRight = (
     <View style={styles.rightGroup}>
       <ThemeToggle />
       {showLogout ? (
         <TouchableOpacity
-          onPress={() => router.replace('/(auth)/login')}
+          onPress={handleLogout}
           style={styles.iconBtn}
           accessibilityRole="button"
           accessibilityLabel="Keluar"

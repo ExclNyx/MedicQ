@@ -1,82 +1,104 @@
-# PuskesmasQueue
+# MedicQ
 
-Sistem Registrasi dan Antrean Puskesmas Berbasis Realtime menggunakan **Expo (React Native) + Firebase**.
+Sistem registrasi dan antrean puskesmas realtime menggunakan **Expo SDK 57 + Expo Router + Firebase JS SDK + Firestore + Zustand**.
 
-## Fitur Utama
+## Mode Firebase yang dipakai
 
-- **Pasien:** Mendaftar akun, melengkapi data diri, mengajukan kunjungan, memantau nomor antrean secara realtime, dan menerima notifikasi + getaran saat antrean sudah dekat atau dipanggil.
-- **Petugas:** Memverifikasi pasien (mencegah antrean palsu), mencatat keluhan, menentukan poli, dan memanggil/melewati nomor antrean.
-- **TV Ruang Tunggu:** Tampilan display (Display Mode) yang khusus dioptimalkan untuk TV monitor guna menampilkan nomor yang dipanggil saat ini dan antrean berikutnya secara realtime.
-- **Dukungan Pasien Manual:** Petugas dapat mendaftarkan pasien yang tidak menggunakan aplikasi dengan menggunakan form registrasi manual, dan mengintegrasikannya ke sistem antrean yang sama.
+Project ini sengaja menggunakan **Firebase JavaScript SDK**, bukan `@react-native-firebase`. Karena itu aplikasi dapat dijalankan di **Expo Go**. Firebase Authentication dan Cloud Firestore didukung oleh Firebase JS SDK pada React Native/Expo; persistence Auth dikonfigurasi dengan `initializeAuth()` + `getReactNativePersistence(AsyncStorage)`.
 
----
+File `google-services.json` yang sudah ada dipakai sebagai fallback untuk Android Expo Go. Untuk target Web/universal, gunakan konfigurasi **Web App** dari Firebase Console melalui file `.env`.
 
-## 🛠️ Persiapan & Konfigurasi (PENTING)
+## Jalankan di Expo Go
 
-Aplikasi ini menggunakan **Firebase Native SDK** (`@react-native-firebase/*`). Oleh karena itu, aplikasi **TIDAK BISA** dijalankan hanya dengan Expo Go. Anda harus menggunakan **Development Build**.
-
-### 1. Buat Firebase Project
-1. Buka [Firebase Console](https://console.firebase.google.com/)
-2. Buat project baru (contoh: `puskesmas-queue-dev`)
-3. Aktifkan **Authentication** (Email/Password)
-4. Aktifkan **Firestore Database** (buat dalam mode test atau salin aturan dari `firestore.rules`)
-5. Tambahkan aplikasi Android di console Firebase. Gunakan Package Name: `com.puskesmasqueue.app`
-6. Unduh file `google-services.json` dan letakkan di **root folder** project ini (sejajar dengan `package.json`).
-
-*(Catatan: Jika Anda juga ingin build untuk iOS, tambahkan aplikasi iOS di Firebase dengan bundle ID yang sama, unduh `GoogleService-Info.plist`, dan letakkan di root folder)*.
-
-### 2. Jalankan Aplikasi
-Karena menggunakan native code (Firebase), jalankan perintah berikut untuk meng-compile ulang (memerlukan Android SDK terinstall atau EAS Build):
+1. Pastikan Node.js dan Expo CLI tersedia.
+2. Di folder project jalankan:
 
 ```bash
-# Hapus node_modules jika ada masalah
 npm install
-
-# Build dan jalankan di emulator / device Android yang terhubung via USB
-npx expo run:android
+npx expo start -c
 ```
 
-Jika Anda tidak memiliki Android Studio, Anda harus membuild aplikasi di cloud menggunakan EAS:
+3. Buka project dengan Expo Go yang cocok dengan **SDK 57**. Expo mendokumentasikan bahwa versi SDK project dan Expo Go harus kompatibel.
+
+## Firebase Authentication
+
+Di Firebase Console:
+
+- Project: `medicq`
+- Authentication → Sign-in method → aktifkan **Email/Password**.
+- Firestore Database → buat database.
+- Publish isi `firestore.rules` dari project ini.
+- Untuk mode presentasi, query utama difilter pada sisi aplikasi untuk mengurangi kebutuhan composite index saat setup. Ini cocok untuk data demo yang kecil, bukan untuk skala produksi.
+
+Setelah itu alur berikut sudah terhubung:
+
+`Register pasien → Firebase Auth → users/{uid} → Login → ambil role → Patient/Staff dashboard`
+
+Pada registration, jika penulisan profil Firestore gagal, akun Auth yang baru dibuat akan dibatalkan agar tidak meninggalkan akun yatim.
+
+## Konfigurasi Web (opsional)
+
+Salin file contoh menjadi `.env`:
+
 ```bash
-npx expo install eas-cli
-eas login
-eas build --profile development --platform android
-# Install APK yang dihasilkan ke device, lalu jalankan:
-npx expo start --dev-client
+copy .env.example .env
 ```
 
----
+Lalu isi nilai Web App dari Firebase Console. Konfigurasi paling penting adalah `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, dan `appId`.
 
-## 🧑‍💻 Cara Pengujian (Testing Scenarios)
+## Catatan mode presentasi
 
-Buat 2 akun untuk pengujian:
-1. Daftar sebagai pasien melalui aplikasi.
-2. Karena belum ada dashboard admin khusus untuk mengubah role, Anda harus mengubah role akun kedua secara manual di Firebase Firestore: Buka collection `users` -> cari akun -> ubah field `role` menjadi `"staff"`.
+Untuk versi presentasi ini, notifikasi sistem, remote push, dan haptic dinonaktifkan sementara. Status antrean tetap diperbarui melalui listener Firestore. Notifikasi dapat diintegrasikan kembali setelah alur utama stabil; remote push Android memerlukan Development Build.
 
-### Skenario Uji:
-1. **Daftar Kunjungan:** Pasien login -> klik "Daftar Kunjungan". Status akan menjadi "Menunggu Verifikasi".
-2. **Verifikasi:** Login sebagai Petugas (di perangkat/emulator lain) -> Dashboard. Akan muncul pasien di tab "Verifikasi".
-3. **Pilih Poli:** Petugas klik verifikasi -> pilih keluhan -> pilih Poli Umum -> klik Buat Antrean.
-4. **Realtime Antrean:** Di aplikasi pasien, layar akan otomatis berubah (tanpa refresh) menampilkan nomor antrean (contoh: A-001).
-5. **Notifikasi Getar:** Ketika petugas memanggil antrean yang berada tepat di depan pasien, HP pasien akan bergetar singkat (warning). Saat nomor pasien dipanggil, akan muncul notifikasi sistem dan getaran kuat (success/heavy haptic).
-6. **TV Mode:** Buka URL atau aplikasi dengan path `/display` untuk melihat tampilan papan antrean TV yang merespon secara realtime saat petugas memanggil pasien.
+## Alur antrean
 
----
+- Pasien daftar kunjungan → `REGISTRATION_PENDING`.
+- Petugas memverifikasi → `VERIFIED`.
+- Petugas menentukan poli → queue dibuat dengan status `WAITING`.
+- Petugas menekan **Panggil Berikutnya** → nomor target `CALLED` dan queue aktif sebelumnya otomatis `COMPLETED`.
+- Tombol **Panggil Ulang** tetap tersedia.
+- Tombol **Selesai** bisa digunakan untuk menutup antrean aktif secara manual.
+- Data queue, registration, dan display board dibaca lewat listener Firestore realtime.
 
-## Struktur Database Firestore
+## KTP / OCR
 
-Struktur lengkap dan security rules dapat dilihat di file `firestore.rules`.
-Minimal Anda perlu membuat data master layanan/poli di collection `services` melalui Firebase Console:
+`expo-image-picker` dapat digunakan di Expo Go. OCR pihak ketiga tetap membutuhkan endpoint/API sendiri; konfigurasi kosong tidak lagi diam-diam memakai API demo. Bila OCR belum dikonfigurasi, pengguna tetap dapat mengisi data pasien secara manual. `expo-image-picker` sendiri termasuk library yang tersedia di Expo Go SDK 57.
 
-**Collection `services`:**
-- Document 1: `id: "poli_umum"`, `name: "Poli Umum"`, `code: "A"`, `isActive: true`, `currentServing: null`
-- Document 2: `id: "poli_gigi"`, `name: "Poli Gigi"`, `code: "B"`, `isActive: true`, `currentServing: null`
+## Seed data
 
----
+Aplikasi tidak bergantung pada akun seed untuk login pasien. Pasien dibuat melalui layar Register. Untuk petugas/admin, buat akun Email/Password lalu buat/update dokumen `users/{uid}` di Firestore dengan role `staff` atau `admin`.
 
-## Tech Stack
-- Expo SDK 57 (React Native 0.86)
-- Expo Router v4
-- Zustand (State Management)
-- @react-native-firebase (Auth, Firestore, Messaging)
-- expo-notifications & expo-haptics
+## Menu Petugas
+
+Area petugas sekarang memiliki menu:
+
+- Dashboard
+- Pendaftaran
+- Registrasi Pasien
+- Cari Pasien
+- Verifikasi Pasien
+- Keluhan
+- Pilih Poli
+- Antrian
+- Panggil Berikutnya
+- Panggil Ulang
+- Lewati / No Show
+- Riwayat
+
+Dashboard dan modul antrean memakai listener Firestore untuk data real-time.
+
+## Data pasien langsung ke Firebase
+
+Alur pasien sekarang:
+
+`Pasien Register -> Firebase Authentication -> users/{uid}`
+
+`Pasien Lengkapi Profil -> Firestore patients/{uid}`
+
+`Pasien daftar kunjungan -> Firestore registrations/{registrationId}`
+
+Untuk pasien yang datang langsung melalui menu Petugas -> Registrasi Pasien:
+
+`Form Petugas -> Firestore patients/{NIK} -> Firestore registrations/{registrationId}`
+
+Nomor rekam medis sederhana dibuat otomatis untuk data pasien baru agar dapat dipakai saat pencarian. Search NIK dilakukan langsung dengan query Firestore; pencarian nama/RM dilakukan pada data pasien yang diambil dari Firestore karena skala project saat ini masih kecil.

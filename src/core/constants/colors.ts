@@ -116,7 +116,7 @@ export const palette = {
   },
 } as const;
 
-export type AppColors = (typeof palette)['light'];
+export type AppColors = { [K in keyof (typeof palette)['light']]: string };
 export type ColorKey = keyof AppColors;
 
 /** Palette light — dipakai komponen yang belum pakai useColors(). */

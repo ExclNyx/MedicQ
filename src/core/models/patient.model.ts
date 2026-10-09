@@ -1,7 +1,7 @@
 export type Gender = 'male' | 'female';
 
 export interface PatientModel {
-  id: string; // same as uid
+  id: string;
   nik: string;
   fullName: string;
   dateOfBirth: Date;
@@ -9,6 +9,8 @@ export interface PatientModel {
   address: string;
   phoneNumber: string;
   isVerified: boolean;
+  /** Optional so older Firestore documents remain compatible. */
+  medicalRecordNumber?: string;
   createdAt: Date;
   updatedAt: Date;
 }

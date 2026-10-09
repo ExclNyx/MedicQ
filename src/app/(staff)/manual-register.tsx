@@ -19,6 +19,8 @@ import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { StaffHeader } from '../../components/ui/StaffHeader';
 import type { Gender } from '../../core/models';
 import { useColors } from '../../core/theme/ThemeContext';
+import { patientService } from '../../services/patient.service';
+import { registrationService } from '../../services/registration.service';
 
 type Values = {
   nik: string;
@@ -70,12 +72,29 @@ export default function ManualRegisterScreen() {
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!/^\d{16}$/.test(searchNik)) {
       Alert.alert('NIK tidak valid', 'Masukkan 16 digit angka NIK.');
       return;
     }
-    Alert.alert('UI Demo', 'Pencarian pasien lama membutuhkan koneksi Firestore.');
+    try {
+      const patient = await patientService.findByNik(searchNik);
+      if (patient) {
+        setValues({
+          nik: patient.nik,
+          fullName: patient.fullName,
+          address: patient.address,
+          phone: patient.phoneNumber,
+        });
+        setDob(`${patient.dateOfBirth.getDate().toString().padStart(2, '0')}-${(patient.dateOfBirth.getMonth()+1).toString().padStart(2, '0')}-${patient.dateOfBirth.getFullYear()}`);
+        setGender(patient.gender);
+        Alert.alert('Ditemukan', `Data pasien ${patient.fullName} berhasil dimuat.`);
+      } else {
+        Alert.alert('Tidak Ditemukan', 'Pasien dengan NIK tersebut belum terdaftar.');
+      }
+    } catch (e: any) {
+      Alert.alert('Gagal mencari', e.message);
+    }
   };
 
   const validate = (): Errors => {
@@ -88,17 +107,39 @@ export default function ManualRegisterScreen() {
     return found;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const found = validate();
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) return;
 
-    Alert.alert(
-      'Registrasi Manual (UI Demo)',
-      `Pasien ${values.fullName} disimpan.\n\nSetelah pilih keluhan & poli, nomor antrean langsung terbit (status QUEUED, tanpa verifikasi).`,
-      [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }],
-    );
+    try {
+      const patientId = values.nik; // Use NIK as patientId for manual offline patients
+      const [d, m, y] = dob.split('-');
+      
+      await patientService.createOrUpdateProfile(patientId, {
+        nik: values.nik,
+        fullName: values.fullName,
+        dateOfBirth: new Date(Number(y), Number(m)-1, Number(d)),
+        gender: gender!,
+        address: values.address,
+        phoneNumber: values.phone
+      });
+
+      await registrationService.createRegistration({
+        patientId,
+        patientName: values.fullName,
+        isManual: true
+      });
+
+      Alert.alert(
+        'Berhasil',
+        `Pasien ${values.fullName} berhasil didaftarkan secara manual.`,
+        [{ text: 'Ke Dashboard', onPress: () => router.navigate('/(staff)/dashboard') }]
+      );
+    } catch (e: any) {
+      setFormError(e.message || 'Terjadi kesalahan saat menyimpan data.');
+    }
   };
 
   return (

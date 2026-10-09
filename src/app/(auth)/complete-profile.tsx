@@ -19,6 +19,10 @@ import type { Gender } from "../../core/models";
 import { useColors } from "../../core/theme/ThemeContext";
 import { scanKtpFromImage } from "../../services/ktp-ocr.service";
 
+import { authService } from "../../services/auth.service";
+import { patientService } from "../../services/patient.service";
+import { useAuthStore } from "../../stores/auth.store";
+
 type Field = "nik" | "fullName" | "dob" | "gender" | "address" | "phone";
 type Values = {
   nik: string;
@@ -82,12 +86,6 @@ function validate(values: Values, gender: Gender | null): Errors {
     errors.phone = "Nomor HP tidak valid. Contoh: 081234567890.";
   }
   return errors;
-}
-
-// TODO (tim backend): ganti dengan patientService.createOrUpdateProfile(uid, {
-//   nik, fullName, dateOfBirth (Date dari parseDob), gender, address, phoneNumber })  (PRD F-P02)
-async function saveProfileDemo(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
 }
 
 const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
@@ -211,6 +209,7 @@ export default function CompleteProfileScreen() {
     }
   };
 
+  const authStore = useAuthStore();
   const handleSubmit = async () => {
     if (loading || scanState === "processing") return;
 
@@ -221,11 +220,28 @@ export default function CompleteProfileScreen() {
       focusFirstError(found);
       return;
     }
+    
+    // Setelah register, Firebase Auth sudah memiliki currentUser meskipun
+    // listener Firestore belum sempat mengisi Zustand. Gunakan currentUser
+    // sebagai sumber UID yang paling langsung, lalu fallback ke store.
+    const uid = authService.getCurrentUser()?.uid ?? authStore.user?.uid;
+
+    if (!uid) {
+      setFormError("Sesi pengguna tidak ditemukan. Silakan kembali ke login.");
+      return;
+    }
 
     setLoading(true);
     try {
-      await saveProfileDemo();
-      router.replace("/(patient)/home");
+      await patientService.createOrUpdateProfile(uid, {
+        nik: values.nik,
+        fullName: values.fullName,
+        dateOfBirth: parseDob(values.dob)!,
+        gender: gender!,
+        address: values.address,
+        phoneNumber: values.phone,
+      });
+      router.replace("/(auth)/patient-access");
     } catch {
       setFormError("Data gagal disimpan. Silakan coba lagi.");
     } finally {

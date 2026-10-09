@@ -10,9 +10,16 @@ export interface QueueModel {
   registrationId: string;
   visitDate: string;     // YYYY-MM-DD
   status: QueueStatus;
-  sequenceNumber: number; // 27
+  sequenceNumber: number; // nomor asli yang tercetak pada tiket
+  /** Urutan tunggu aktif. Saat no-show, nilai ini dipindah ke belakang antrean. */
+  queueOrder?: number;
+  /** Berapa kali pasien pernah dilewati/no-show pada kunjungan ini. */
+  skipCount?: number;
+  /** Versi pemanggilan; bertambah saat dipanggil atau dipanggil ulang. */
+  callCount?: number;
   createdAt: Date;
   calledAt: Date | null;
   servedAt: Date | null;
   completedAt: Date | null;
+  lastSkippedAt?: Date | null;
 }

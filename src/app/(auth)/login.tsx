@@ -11,28 +11,19 @@ import { AuthScreen } from "../../components/ui/AuthScreen";
 import { FormField } from "../../components/ui/FormField";
 import { PrimaryButton } from "../../components/ui/PrimaryButton";
 import type { UserRole } from "../../core/models";
+import { useAuthStore } from "../../stores/auth.store";
 import { useColors } from "../../core/theme/ThemeContext";
+import { authService, getAuthErrorMessage } from "../../services/auth.service";
 
 // PRD: pasien & petugas masuk lewat form yang sama (F-P01, F-ST01).
 // Peran ditentukan dari data akun di Firestore, bukan dipilih di layar ini.
-type LoginRole = Extract<UserRole, "patient" | "staff">;
+type LoginRole = UserRole;
 
 const HOME_BY_ROLE = {
-  patient: "/(patient)/home",
+  patient: "/(auth)/patient-access",
   staff: "/(staff)/dashboard",
+  admin: "/(admin)/dashboard",
 } as const satisfies Record<LoginRole, string>;
-
-// TODO (tim backend): ganti dengan authService.signInWithEmail(email, password),
-// lalu arahkan berdasarkan user.role hasil dari Firestore.
-// Sementara mode demo: email yang diawali "petugas" dianggap petugas,
-// selain itu dianggap pasien.
-async function signInDemo(
-  email: string,
-  _password: string,
-): Promise<LoginRole> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return email.trim().toLowerCase().startsWith("petugas") ? "staff" : "patient";
-}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -53,6 +44,7 @@ function validate(email: string, password: string): Errors {
 
 export default function LoginScreen() {
   const c = useColors();
+  const setUser = useAuthStore((state) => state.setUser);
   const passwordRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState("");
@@ -78,10 +70,20 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const role = await signInDemo(email, password);
-      router.replace(HOME_BY_ROLE[role]);
-    } catch {
-      setFormError("Email atau kata sandi salah. Silakan coba lagi.");
+      const user = await authService.signInWithEmail(email.trim(), password);
+      setUser(user);
+      const role = user.role as LoginRole;
+      if (role === "patient" || role === "staff" || role === "admin") {
+        router.replace(HOME_BY_ROLE[role]);
+      } else {
+        // Role kosong/tidak dikenali harus berhenti di login,
+        // jangan diarahkan ke layar pasien/petugas secara spekulatif.
+        await authService.signOut();
+        setUser(null);
+        setFormError("Role akun belum benar. Periksa users/{UID} di Firestore.");
+      }
+    } catch (error) {
+      setFormError(getAuthErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -188,6 +190,5 @@ const styles = StyleSheet.create({
 
   // Dev only
   devLink: { alignItems: "center", paddingVertical: 16 },
-  // stretch + center: cegah teks terpotong di tepi kanan (Android)
   devLinkText: { fontSize: 12, alignSelf: "stretch", textAlign: "center" },
 });
