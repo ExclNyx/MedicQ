@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -17,6 +17,7 @@ import { OutlineButton } from '../../components/ui/OutlineButton';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { StaffHeader } from '../../components/ui/StaffHeader';
 import { COMPLAINT_OPTIONS } from '../../core/constants/complaints';
+import { getPoliRecommendation } from '../../core/utils/poliRecommendation';
 import { DEFAULT_SERVICES } from '../../core/constants/services';
 import { useColors } from '../../core/theme/ThemeContext';
 import { useAuthStore } from '../../stores/auth.store';
@@ -36,6 +37,12 @@ export default function ComplaintFormScreen() {
   const [selectedService, setSelectedService] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Hitung rekomendasi setiap kali keluhan atau catatan berubah
+  const recommendation = useMemo(
+    () => getPoliRecommendation(selectedComplaints, note),
+    [selectedComplaints, note],
+  );
 
   const toggleComplaint = (label: string) => {
     setSelectedComplaints((prev) =>
@@ -153,6 +160,114 @@ export default function ComplaintFormScreen() {
               multiline
             />
           </View>
+
+          {/* Rekomendasi Poli */}
+          {selectedComplaints.length > 0 || note.trim().length > 0 ? (
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor:
+                    recommendation.status === 'emergency'
+                      ? c.errorContainer
+                      : recommendation.status === 'recommended'
+                        ? c.primaryContainer
+                        : c.surface,
+                  borderColor:
+                    recommendation.status === 'emergency'
+                      ? c.error
+                      : recommendation.status === 'recommended'
+                        ? c.primary
+                        : c.cardBorder,
+                },
+              ]}
+            >
+              <View style={styles.recHeader}>
+                <Ionicons
+                  name={
+                    recommendation.status === 'emergency'
+                      ? 'warning-outline'
+                      : recommendation.status === 'recommended'
+                        ? 'bulb-outline'
+                        : 'help-circle-outline'
+                  }
+                  size={18}
+                  color={
+                    recommendation.status === 'emergency'
+                      ? c.error
+                      : recommendation.status === 'recommended'
+                        ? c.primary
+                        : c.onSurfaceVariant
+                  }
+                />
+                <Text
+                  style={[
+                    styles.recTitle,
+                    {
+                      color:
+                        recommendation.status === 'emergency'
+                          ? c.error
+                          : recommendation.status === 'recommended'
+                            ? c.primary
+                            : c.onSurface,
+                    },
+                  ]}
+                >
+                  {recommendation.status === 'emergency'
+                    ? 'Indikasi Darurat'
+                    : recommendation.status === 'recommended'
+                      ? `Rekomendasi: ${recommendation.service!.name}`
+                      : recommendation.status === 'ambiguous'
+                        ? 'Keluhan Ambigu'
+                        : 'Belum Ada Rekomendasi'}
+                </Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.recReason,
+                  {
+                    color:
+                      recommendation.status === 'emergency'
+                        ? c.error
+                        : c.onSurfaceVariant,
+                  },
+                ]}
+              >
+                {recommendation.reasonMessage}
+              </Text>
+
+              {recommendation.status === 'recommended' && !selectedService && (
+                <TouchableOpacity
+                  style={[styles.recButton, { backgroundColor: c.primary }]}
+                  onPress={() => {
+                    setSelectedService(recommendation.service!.id);
+                    setError(null);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Gunakan rekomendasi ${recommendation.service!.name}`}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color={c.onPrimary} />
+                  <Text style={[styles.recButtonText, { color: c.onPrimary }]}>
+                    Gunakan Rekomendasi
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {recommendation.status === 'recommended' && selectedService === recommendation.service!.id && (
+                <View style={styles.recConfirmed}>
+                  <Ionicons name="checkmark-circle" size={16} color={c.primary} />
+                  <Text style={[styles.recConfirmedText, { color: c.primary }]}>
+                    Rekomendasi diterapkan
+                  </Text>
+                </View>
+              )}
+
+              <Text style={[styles.recDisclaimer, { color: c.outline }]}>
+                Bukan diagnosis medis. Petugas tetap perlu mengonfirmasi pilihan poli di bawah.
+              </Text>
+            </View>
+          ) : null}
 
           {/* Poli tujuan */}
           <View
@@ -331,4 +446,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   errorText: { fontSize: 13, fontWeight: '600', flex: 1 },
+
+  // Rekomendasi Poli
+  recHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  recTitle: { fontSize: 14, fontWeight: '800', flexShrink: 1 },
+  recReason: { fontSize: 12, lineHeight: 18, marginBottom: 10 },
+  recButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  recButtonText: { fontSize: 13, fontWeight: '700' },
+  recConfirmed: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  recConfirmedText: { fontSize: 12, fontWeight: '700' },
+  recDisclaimer: { fontSize: 10, lineHeight: 14, fontStyle: 'italic', marginTop: 4 },
 });

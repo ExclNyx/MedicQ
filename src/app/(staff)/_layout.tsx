@@ -15,7 +15,6 @@ function StaffStack() {
       <Stack.Screen name="[slug]" />
       <Stack.Screen name="patient-detail" />
       <Stack.Screen name="complaint-form" />
-      <Stack.Screen name="manual-register" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

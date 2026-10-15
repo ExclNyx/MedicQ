@@ -37,11 +37,7 @@ const MODULES: Record<
     description: 'Pasien yang mendaftar melalui aplikasi akan muncul di sini secara real-time.',
     icon: 'document-text-outline',
   },
-  'registrasi-pasien': {
-    title: 'Registrasi Pasien',
-    description: 'Daftarkan pasien yang datang langsung ke puskesmas.',
-    icon: 'person-add-outline',
-  },
+
   'cari-pasien': {
     title: 'Cari Pasien',
     description: 'Cari berdasarkan NIK, nama, atau nomor rekam medis.',
@@ -53,8 +49,8 @@ const MODULES: Record<
     icon: 'shield-checkmark-outline',
   },
   keluhan: {
-    title: 'Keluhan',
-    description: 'Pilih keluhan pasien dan lanjutkan proses penentuan poli.',
+    title: 'Keluhan dan Pilih Poli',
+    description: 'Memeriksa keluhan, melihat rekomendasi poli, dan mengonfirmasi poli tujuan pasien.',
     icon: 'chatbox-ellipses-outline',
   },
   'pilih-poli': {
@@ -155,7 +151,7 @@ export default function StaffModuleScreen() {
     }
   };
 
-  const goManualRegister = () => router.push('/(staff)/manual-register');
+
 
   const openRegistration = (regId: string, patientId: string) =>
     router.push(`/(staff)/patient-detail?id=${patientId}&regId=${regId}`);
@@ -205,20 +201,7 @@ export default function StaffModuleScreen() {
   }
 
   const renderBody = () => {
-    if (slug === 'registrasi-pasien') {
-      return (
-        <View style={styles.stack}>
-          <View style={[styles.heroCard, { backgroundColor: c.surface, borderColor: c.cardBorder }]}>
-            <View style={[styles.heroIcon, { backgroundColor: c.primaryContainer }]}>
-              <Ionicons name="person-add-outline" size={28} color={c.primary} />
-            </View>
-            <Text style={[styles.cardTitle, { color: c.onSurface }]}>Registrasi Pasien Manual</Text>
-            <Text style={[styles.cardDescription, { color: c.onSurfaceVariant }]}>Data pasien, lalu data pendaftaran, akan langsung disimpan ke Firestore collection <Text style={{ fontWeight: '800' }}>patients</Text> dan <Text style={{ fontWeight: '800' }}>registrations</Text>.</Text>
-            <PrimaryButton label="REGISTRASI PASIEN" onPress={goManualRegister} />
-          </View>
-        </View>
-      );
-    }
+
 
     if (slug === 'cari-pasien') {
       return (
@@ -284,7 +267,7 @@ export default function StaffModuleScreen() {
             <RegistrationItem
               key={reg.id}
               registration={reg}
-              actionLabel={slug === 'keluhan' ? 'KELOLA' : 'PILIH POLI'}
+              actionLabel="KELOLA & PILIH POLI"
               onVerify={() => openComplaint(reg.id)}
             />
           ))}

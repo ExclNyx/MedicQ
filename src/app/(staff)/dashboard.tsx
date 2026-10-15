@@ -43,16 +43,9 @@ const MENU_ITEMS = [
   },
   {
     slug: 'keluhan',
-    title: 'Keluhan',
-    description: 'Mencatat atau mengonfirmasi keluhan pasien.',
+    title: 'Keluhan dan Pilih Poli',
+    description: 'Memeriksa keluhan, melihat rekomendasi poli, dan mengonfirmasi poli tujuan pasien.',
     icon: 'chatbox-ellipses-outline' as const,
-    group: 'pasien',
-  },
-  {
-    slug: 'pilih-poli',
-    title: 'Pilih Poli',
-    description: 'Menentukan atau mengonfirmasi poli tujuan pasien.',
-    icon: 'business-outline' as const,
     group: 'pasien',
   },
   {
@@ -389,6 +382,7 @@ export default function StaffDashboardScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
@@ -420,7 +414,14 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '600' },
   currentNumber: { fontSize: 40, lineHeight: 48, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
   currentName: { fontSize: 15, lineHeight: 20, fontWeight: '600', marginTop: -6 },
-  actionRow: { flexDirection: 'row', gap: 10 },
+
+  // Baris tombol Kontrol Antrean
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+
   group: { gap: 12 },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chevronCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
