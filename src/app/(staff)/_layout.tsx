@@ -1,6 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 function StaffStack() {
   const c = useColors();

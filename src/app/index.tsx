@@ -1,44 +1,59 @@
-import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useAuthStore } from '../stores/auth.store';
-import { useColors } from '../core/theme/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DisplayBoard } from '@/components/display/DisplayBoard';
+import { displayPalette } from '@/constants/colors';
+import { useStaffQueue } from '@/hooks/useStaffQueue';
+import { useLocalSearchParams } from 'expo-router';
 
-export default function Index() {
-  const { user, isInitialized } = useAuthStore();
-  const c = useColors();
+/** Layar TV ruang tunggu — buka di browser/TV via /display. */
+export default function DisplayScreen() {
+  const { serviceId } = useLocalSearchParams();
+  const id = (serviceId as string) || 'poli_umum';
 
-  if (!isInitialized) {
-    return (
-      <View style={[styles.loader, { backgroundColor: c.background }]}>
-        <ActivityIndicator size="large" color={c.primary} />
-      </View>
-    );
-  }
+  const { services, currentServing, waitingQueues } = useStaffQueue(id);
+  const displayService = services.find(s => s.id === id);
 
-  if (user) {
-    if (user.role === 'admin') {
-      return <Redirect href="/(admin)/dashboard" />;
-    }
+  return (
+    <View style={styles.container}>
+      <DisplayBoard
+        service={displayService || null}
+        currentQueue={currentServing || null}
+        nextQueues={waitingQueues}
+      />
 
-    if (user.role === 'staff') {
-      return <Redirect href="/(staff)/dashboard" />;
-    }
-
-    if (user.role === 'patient') {
-      return <Redirect href="/(auth)/patient-access" />;
-    }
-
-    // Unknown/malformed roles must never fall through to another role's screen.
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  return <Redirect href="/(auth)/login" />;
+      {/* Tombol keluar — hanya untuk UI testing, sembunyikan di production TV */}
+      <TouchableOpacity
+        style={styles.exitBtn}
+        onPress={() => router.replace('/(auth)/login')}
+        accessibilityRole="button"
+        accessibilityLabel="Keluar mode TV"
+      >
+        <Ionicons name="close" size={18} color={displayPalette.exitIcon} />
+        <Text style={styles.exitText}>Keluar Mode TV</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
+  container: { flex: 1, backgroundColor: displayPalette.bg },
+  exitBtn: {
+    position: 'absolute',
+    top: 40,
+    right: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: displayPalette.exitBg,
+    borderRadius: 12,
+    zIndex: 100,
+  },
+  exitText: {
+    color: displayPalette.exitText,
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

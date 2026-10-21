@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useColors } from "../../core/theme/ThemeContext";
+import { useColors } from "@/hooks/useMedicQTheme";
 
 const MONTHS_ID = [
   "Januari",

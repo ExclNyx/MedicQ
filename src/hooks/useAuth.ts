@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { userRepository } from '../repositories/user.repository';
-import { authService } from '../services/auth.service';
-import { useAuthStore } from '../stores/auth.store';
+import { userRepository } from '@/services/user.repository';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 /** Keeps the app-level authentication session synchronized with Firebase. */
 export const useAuth = () => {

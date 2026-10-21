@@ -1,9 +1,9 @@
 import { Stack, Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { registrationRepository } from '../../repositories/registration.repository';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { registrationRepository } from '@/services/registration.repository';
 
 export default function PatientLayout() {
   const c = useColors();

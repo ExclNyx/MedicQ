@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
 import { router } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { DisplayBoard } from '../../components/display/DisplayBoard';
-import type { QueueModel, ServiceModel } from '../../core/models';
-import { useStaffQueue } from '../../hooks/useStaffQueue';
+import { DisplayBoard } from '@/components/display/DisplayBoard';
+import { displayPalette } from '@/constants/colors';
+import { useStaffQueue } from '@/hooks/useStaffQueue';
 import { useLocalSearchParams } from 'expo-router';
 
 /** Layar TV ruang tunggu — buka di browser/TV via /display. */
@@ -30,7 +29,7 @@ export default function DisplayScreen() {
         accessibilityRole="button"
         accessibilityLabel="Keluar mode TV"
       >
-        <Ionicons name="close" size={18} color="rgba(255,255,255,0.85)" />
+        <Ionicons name="close" size={18} color={displayPalette.exitIcon} />
         <Text style={styles.exitText}>Keluar Mode TV</Text>
       </TouchableOpacity>
     </View>
@@ -38,7 +37,7 @@ export default function DisplayScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D47A1' },
+  container: { flex: 1, backgroundColor: displayPalette.bg },
   exitBtn: {
     position: 'absolute',
     top: 40,
@@ -48,12 +47,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: displayPalette.exitBg,
     borderRadius: 12,
     zIndex: 100,
   },
   exitText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: displayPalette.exitText,
     fontSize: 14,
     fontWeight: '700',
   },

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity } from "react-native";
-import { useTheme } from "../../core/theme/ThemeContext";
+import { useColors, useTheme } from "@/hooks/useMedicQTheme";
 
 const ICON: Record<string, "sunny" | "moon" | "phone-portrait"> = {
   system: "phone-portrait",
@@ -17,6 +17,7 @@ const LABEL: Record<string, string> = {
 /** Tombol ganti tema: system → light → dark → system. */
 export function ThemeToggle() {
   const { mode, isDark, cycleMode } = useTheme();
+  const c = useColors();
   const name = ICON[mode] ?? "phone-portrait";
 
   return (
@@ -27,7 +28,7 @@ export function ThemeToggle() {
       accessibilityLabel={`${LABEL[mode] ?? mode}. Ketuk untuk ganti tema.`}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
-      <Ionicons name={name} size={20} color={isDark ? "#BBDEFB" : "#FFFFFF"} />
+      <Ionicons name={name} size={20} color={isDark ? c.onPrimaryMuted : c.onPrimary} />
     </TouchableOpacity>
   );
 }

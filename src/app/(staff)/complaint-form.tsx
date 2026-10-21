@@ -12,18 +12,19 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FormField } from '../../components/ui/FormField';
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { COMPLAINT_OPTIONS } from '../../core/constants/complaints';
-import { getPoliRecommendation } from '../../core/utils/poliRecommendation';
-import { DEFAULT_SERVICES } from '../../core/constants/services';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { registrationService } from '../../services/registration.service';
-import { queueService } from '../../services/queue.service';
-import { useQueueStore } from '../../stores/queue.store';
+import { FormField } from '@/components/ui/FormField';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { COMPLAINT_OPTIONS } from '@/constants/complaints';
+import { getPoliRecommendation } from '@/services/poli-recommendation';
+import { DEFAULT_SERVICES } from '@/constants/poli-options';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { registrationService } from '@/services/registration.service';
+import { registrationRepository } from '@/services/registration.repository';
+import { queueService } from '@/services/queue.service';
+import { useQueueStore } from '@/hooks/useQueueStore';
 
 export default function ComplaintFormScreen() {
   const c = useColors();
@@ -70,8 +71,9 @@ export default function ComplaintFormScreen() {
         complaintNote: note
       });
 
-      const reg = verifiedRegistrations.find(r => r.id === regId);
-      if (!reg) throw new Error('Registrasi tidak ditemukan di state lokal.');
+      const reg = verifiedRegistrations.find(r => r.id === regId)
+        ?? await registrationRepository.getById(regId);
+      if (!reg) throw new Error('Registrasi tidak ditemukan.');
 
       const queue = await queueService.assignQueue({
         registrationId: reg.id,

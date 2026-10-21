@@ -2,12 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PatientHeader } from "../../components/ui/PatientHeader";
-import { StatusBadge } from "../../components/ui/StatusBadge";
-import type { QueueStatus } from "../../core/models";
-import { useColors } from "../../core/theme/ThemeContext";
-import { useAuthStore } from "../../stores/auth.store";
-import { usePatientQueue } from "../../hooks/usePatientQueue";
+import { PatientHeader } from "@/components/ui/PatientHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { QueueStatus } from "@/types";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import { usePatientQueue } from "@/hooks/usePatientQueue";
 
 export default function QueueStatusScreen() {
   const c = useColors();
@@ -18,23 +18,23 @@ export default function QueueStatusScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+      <View style={[styles.flex, styles.centeredContainer, { backgroundColor: c.background }]}>
         <ActivityIndicator size="large" color={c.primary} />
-        <Text style={{ color: c.onSurfaceVariant, marginTop: 12 }}>Memuat status antrean…</Text>
+        <Text style={[styles.loadingText, { color: c.onSurfaceVariant }]}>Memuat status antrean…</Text>
       </View>
     );
   }
 
   if (!myQueue) {
     return (
-      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+      <View style={[styles.flex, styles.centeredContainer, { backgroundColor: c.background }]}>
         <Ionicons name="alert-circle-outline" size={36} color={c.primary} />
-        <Text style={{ color: c.onSurface, textAlign: 'center', fontWeight: '700', marginTop: 12 }}>
+        <Text style={[styles.emptyMessage, { color: c.onSurface }]}>
           {error ? 'Status antrean belum dapat dimuat' : 'Anda belum memiliki nomor antrean.'}
         </Text>
-        {error ? <Text style={{ color: c.onSurfaceVariant, textAlign: 'center', marginTop: 8 }}>{error}</Text> : null}
-        <TouchableOpacity onPress={() => router.replace('/(auth)/patient-access')} style={{ marginTop: 18, padding: 12 }}>
-          <Text style={{ color: c.primary, fontWeight: '700' }}>Kembali ke akses pasien</Text>
+        {error ? <Text style={[styles.errorMessage, { color: c.onSurfaceVariant }]}>{error}</Text> : null}
+        <TouchableOpacity onPress={() => router.replace('/(auth)/patient-access')} style={styles.backButton}>
+          <Text style={[styles.backButtonText, { color: c.primary }]}>Kembali ke akses pasien</Text>
         </TouchableOpacity>
       </View>
     );
@@ -43,7 +43,7 @@ export default function QueueStatusScreen() {
   // Waiting list is all queues except completed/skipped
   const waitingList = serviceQueues
     .filter((q) => q.status !== 'COMPLETED' && q.status !== 'SKIPPED')
-    .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+    .sort((a, b) => (a.queueOrder ?? a.sequenceNumber) - (b.queueOrder ?? b.sequenceNumber))
     .slice(0, 10); // Show max 10 queues for performance
 
   return (
@@ -227,6 +227,23 @@ export default function QueueStatusScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centeredContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  loadingText: { marginTop: 12 },
+  emptyMessage: {
+    marginTop: 12,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  errorMessage: {
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  backButton: { marginTop: 18, padding: 12 },
+  backButtonText: { fontWeight: '700' },
   scroll: { flexGrow: 1 },
   body: {
     width: "100%",

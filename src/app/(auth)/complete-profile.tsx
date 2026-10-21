@@ -11,17 +11,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthScreen } from "../../components/ui/AuthScreen";
-import { DatePickerField } from "../../components/ui/DatePickerField";
-import { FormField } from "../../components/ui/FormField";
-import { PrimaryButton } from "../../components/ui/PrimaryButton";
-import type { Gender } from "../../core/models";
-import { useColors } from "../../core/theme/ThemeContext";
-import { scanKtpFromImage } from "../../services/ktp-ocr.service";
+import { AuthScreen } from "@/components/ui/AuthScreen";
+import { DatePickerField } from "@/components/ui/DatePickerField";
+import { FormField } from "@/components/ui/FormField";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import type { Gender } from "@/types";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { scanKtpFromImage } from "@/services/ktp-ocr.service";
 
-import { authService } from "../../services/auth.service";
-import { patientService } from "../../services/patient.service";
-import { useAuthStore } from "../../stores/auth.store";
+import { authService } from "@/services/auth.service";
+import { patientService } from "@/services/patient.service";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 type Field = "nik" | "fullName" | "dob" | "gender" | "address" | "phone";
 type Values = {

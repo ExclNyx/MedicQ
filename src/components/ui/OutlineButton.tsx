@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useColors } from '../../core/theme/ThemeContext';
+import { useColors } from '@/hooks/useMedicQTheme';
 
 interface OutlineButtonProps {
   label: string;

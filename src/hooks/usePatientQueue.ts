@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { queueRepository } from '../repositories/queue.repository';
-import { registrationRepository } from '../repositories/registration.repository';
-import { queueService } from '../services/queue.service';
-import { useQueueStore } from '../stores/queue.store';
+import { queueRepository } from '@/services/queue.repository';
+import { registrationRepository } from '@/services/registration.repository';
+import { queueService } from '@/services/queue.service';
+import { useQueueStore } from '@/hooks/useQueueStore';
 
 function friendlyListenerError(error: Error): string {
   const code = (error as Error & { code?: string }).code;

@@ -4,12 +4,12 @@ import { id } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PatientHeader } from "../../components/ui/PatientHeader";
-import { StatusBadge } from "../../components/ui/StatusBadge";
-import type { RegistrationModel } from "../../core/models";
-import { useColors } from "../../core/theme/ThemeContext";
-import { useAuthStore } from "../../stores/auth.store";
-import { registrationService } from "../../services/registration.service";
+import { PatientHeader } from "@/components/ui/PatientHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { RegistrationModel } from "@/types";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import { registrationService } from "@/services/registration.service";
 
 /** Parse "YYYY-MM-DD" sebagai tanggal lokal (hindari geser timezone UTC). */
 function parseLocalDate(value: string): Date {
@@ -222,6 +222,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexShrink: 0,
   },
   accent: { width: 4 },
   cardInner: { flex: 1, padding: 16, minWidth: 0 },

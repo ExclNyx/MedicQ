@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { useColors } from '../../core/theme/ThemeContext';
-import { QueueModel } from '../../core/models';
-import { StatusBadge } from './StatusBadge';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { QueueModel } from '@/types';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Props {
   queue: QueueModel;

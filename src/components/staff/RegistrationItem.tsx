@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import type { RegistrationModel } from '../../core/models';
-import { useColors } from '../../core/theme/ThemeContext';
+import type { RegistrationModel } from '@/types';
+import { useColors } from '@/hooks/useMedicQTheme';
 
 interface Props {
   registration: RegistrationModel;

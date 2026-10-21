@@ -1,8 +1,10 @@
+import { StyleSheet } from 'react-native';
+
 const styles = StyleSheet.create({
   touch: {
     minHeight: 52,
     borderRadius: 14,
-    overflow: "hello world",
+    overflow: "hidden",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.22,
     shadowRadius: 8,

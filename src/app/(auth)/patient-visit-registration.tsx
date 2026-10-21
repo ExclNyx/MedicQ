@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PatientHeader } from '../../components/ui/PatientHeader';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { registrationService } from '../../services/registration.service';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PatientHeader } from '@/components/ui/PatientHeader';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { registrationService } from '@/services/registration.service';
 
 const STEPS = [
   {
@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
   stepRail: { width: 26, alignItems: 'center' },
   stepIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   line: { width: 2, height: 24, borderRadius: 1 },
-  flex: { flex: 1 },
   stepTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', paddingTop: 5 },
   stepText: { fontSize: 12, lineHeight: 18, marginTop: 2 },
   tip: { borderRadius: 18, borderLeftWidth: 4, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },

@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthScreen } from "../../components/ui/AuthScreen";
-import { FormField } from "../../components/ui/FormField";
-import { PrimaryButton } from "../../components/ui/PrimaryButton";
-import type { UserRole } from "../../core/models";
-import { useColors } from "../../core/theme/ThemeContext";
-import { authService, getAuthErrorMessage } from "../../services/auth.service";
-import { useAuthStore } from "../../stores/auth.store";
+import { AuthScreen } from "@/components/ui/AuthScreen";
+import { FormField } from "@/components/ui/FormField";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import type { UserRole } from "@/types";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { authService, getAuthErrorMessage } from "@/services/auth.service";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 // PRD: pasien & petugas masuk lewat form yang sama (F-P01, F-ST01).
 // Peran ditentukan dari data akun di Firestore, bukan dipilih di layar ini.

@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '../../core/theme/ThemeContext';
-import { ThemeToggle } from './ThemeToggle';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface PatientHeaderProps {
   title: string;

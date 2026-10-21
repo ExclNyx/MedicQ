@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useQueueStore } from '../stores/queue.store';
-import { registrationRepository } from '../repositories/registration.repository';
-import { queueRepository } from '../repositories/queue.repository';
+import { useQueueStore } from '@/hooks/useQueueStore';
+import { registrationRepository } from '@/services/registration.repository';
+import { queueRepository } from '@/services/queue.repository';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, Collections, fromFirestore } from '../core/config/firebase';
-import { ServiceModel } from '../core/models';
+import { db, Collections, fromFirestore } from '@/services/firebase';
+import { ServiceModel } from '@/types';
 
 export const useStaffQueue = (selectedServiceId: string) => {
   const {

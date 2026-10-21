@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthScreen } from "../../components/ui/AuthScreen";
-import { FormField } from "../../components/ui/FormField";
-import { PrimaryButton } from "../../components/ui/PrimaryButton";
-import { useColors } from "../../core/theme/ThemeContext";
-import { authService, getAuthErrorMessage } from "../../services/auth.service";
+import { AuthScreen } from "@/components/ui/AuthScreen";
+import { FormField } from "@/components/ui/FormField";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { authService, getAuthErrorMessage } from "@/services/auth.service";
 
 type Field = "name" | "email" | "password" | "confirm";
 type Values = Record<Field, string>;

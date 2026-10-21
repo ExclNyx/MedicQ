@@ -12,21 +12,20 @@ import {
   View,
 } from 'react-native';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { RegistrationItem } from '../../components/staff/RegistrationItem';
-import { QueueListItem } from '../../components/staff/QueueListItem';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { DEFAULT_SERVICES } from '../../core/constants/services';
-import type { PatientModel } from '../../core/models';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { useQueueStore } from '../../stores/queue.store';
-import { useStaffQueue } from '../../hooks/useStaffQueue';
-import { authService } from '../../services/auth.service';
-import { patientService } from '../../services/patient.service';
-import { queueService } from '../../services/queue.service';
-import { registrationService } from '../../services/registration.service';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { RegistrationItem } from '@/components/staff/RegistrationItem';
+import { QueueListItem } from '@/components/staff/QueueListItem';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { DEFAULT_SERVICES } from '@/constants/poli-options';
+import type { PatientModel } from '@/types';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { useQueueStore } from '@/hooks/useQueueStore';
+import { useQueueActions } from '@/hooks/useQueueActions';
+import { useStaffQueue } from '@/hooks/useStaffQueue';
+import { patientService } from '@/services/patient.service';
+import { registrationService } from '@/services/registration.service';
 
 const MODULES: Record<
   string,
@@ -129,12 +128,6 @@ export default function StaffModuleScreen() {
   const [results, setResults] = useState<PatientModel[]>([]);
   const activeService = DEFAULT_SERVICES.find((s) => s.id === serviceId) ?? DEFAULT_SERVICES[0];
 
-  const logout = async () => {
-    await authService.signOut();
-    useAuthStore.getState().setUser(null);
-    router.replace('/(auth)/login');
-  };
-
   const doSearch = async () => {
     const term = search.trim();
     if (!term) {
@@ -159,32 +152,7 @@ export default function StaffModuleScreen() {
   const openComplaint = (regId: string) =>
     router.push(`/(staff)/complaint-form?regId=${regId}`);
 
-  const callNext = async () => {
-    try {
-      const next = await queueService.callNext(activeService.id);
-      if (!next) Alert.alert('Antrean kosong', 'Tidak ada pasien yang sedang menunggu.');
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat memanggil antrean.');
-    }
-  };
-
-  const recall = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.recallQueue(currentServing.id, activeService.id);
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat memanggil ulang.');
-    }
-  };
-
-  const skip = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.skipQueue(currentServing.id);
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat melewati antrean.');
-    }
-  };
+  const { callNext, recall, skip, complete } = useQueueActions(activeService.id, currentServing);
 
   const completedOrSkipped = useMemo(
     () => staffServiceQueues.filter((q) => q.status === 'COMPLETED' || q.status === 'SKIPPED'),
@@ -296,12 +264,13 @@ export default function StaffModuleScreen() {
             <Text style={[styles.currentName, { color: c.onSurface }]}>{currentServing?.patientName ?? 'Belum ada pasien'}</Text>
 
             {slug === 'panggil-berikutnya' ? <PrimaryButton label="PANGGIL BERIKUTNYA" disabled={!waitingQueues.length} onPress={callNext} /> : null}
+            {slug === 'panggil-berikutnya' ? <OutlineButton label="SELESAI DILAYANI" icon="checkmark-circle-outline" disabled={!currentServing} onPress={complete} /> : null}
             {slug === 'panggil-ulang' ? <PrimaryButton label="PANGGIL ULANG" disabled={!currentServing} onPress={recall} /> : null}
             {slug === 'lewati-no-show' ? <OutlineButton label="LEWATI / NO SHOW" icon="close-circle-outline" tone="danger" disabled={!currentServing} onPress={skip} /> : null}
           </View>
 
           <Text style={[styles.sectionTitle, { color: c.onSurface }]}>Daftar Tunggu ({waitingQueues.length})</Text>
-          {waitingQueues.map((queue, index) => <QueueListItem key={queue.id} queue={queue} position={index + 1} onSkip={skip} />)}
+          {waitingQueues.map((queue, index) => <QueueListItem key={queue.id} queue={queue} position={index + 1} />)}
           {slug === 'antrian' && waitingQueues.length === 0 ? <Empty label="Tidak ada antrean menunggu." /> : null}
         </View>
       );

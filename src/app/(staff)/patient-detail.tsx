@@ -3,14 +3,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { useColors } from '../../core/theme/ThemeContext';
-import { patientService } from '../../services/patient.service';
-import { registrationService } from '../../services/registration.service';
-import { PatientModel } from '../../core/models';
-import { useAuthStore } from '../../stores/auth.store';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { patientService } from '@/services/patient.service';
+import { registrationService } from '@/services/registration.service';
+import { PatientModel } from '@/types';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 export default function PatientDetailScreen() {
   const c = useColors();
@@ -53,24 +53,29 @@ export default function PatientDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{color: c.onSurface}}>Memuat...</Text>
+      <View style={[styles.flex, styles.centeredContainer, { backgroundColor: c.background }]}>
+        <Text style={[styles.centeredText, { color: c.onSurface }]}>Memuat...</Text>
       </View>
     );
   }
 
   if (!patient) {
     return (
-      <View style={[styles.flex, { backgroundColor: c.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <Text style={{color: c.onSurface}}>Pasien tidak ditemukan</Text>
+      <View style={[styles.flex, styles.centeredContainer, { backgroundColor: c.background }]}>
+        <Text style={[styles.centeredText, { color: c.onSurface }]}>Pasien tidak ditemukan</Text>
       </View>
     );
   }
 
+  const dob = patient.dateOfBirth instanceof Date ? patient.dateOfBirth : new Date(patient.dateOfBirth as any);
+  const dobText = !isNaN(dob.getTime())
+    ? `${dob.getDate().toString().padStart(2, '0')}-${(dob.getMonth() + 1).toString().padStart(2, '0')}-${dob.getFullYear()}`
+    : '-';
+
   const IDENTITY_ROWS: { label: string; value: string }[] = [
     { label: 'NIK', value: patient.nik },
     { label: 'Nama Lengkap', value: patient.fullName },
-    { label: 'Tanggal Lahir', value: `${patient.dateOfBirth.getDate().toString().padStart(2, '0')}-${(patient.dateOfBirth.getMonth()+1).toString().padStart(2, '0')}-${patient.dateOfBirth.getFullYear()}` },
+    { label: 'Tanggal Lahir', value: dobText },
     { label: 'Jenis Kelamin', value: patient.gender === 'male' ? 'Laki-laki' : 'Perempuan' },
     { label: 'Alamat', value: patient.address },
     { label: 'No. HP', value: patient.phoneNumber },
@@ -186,6 +191,11 @@ export default function PatientDetailScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centeredContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centeredText: { textAlign: 'center' },
   scroll: { flexGrow: 1 },
   body: {
     width: '100%',

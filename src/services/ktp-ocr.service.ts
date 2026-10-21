@@ -1,5 +1,21 @@
-import { KTP_OCR_API_KEY, KTP_OCR_ENDPOINT, KTP_OCR_EXTRA_HEADERS, isMockKtpOcr } from '../core/config/ktp-ocr';
-import type { Gender } from '../core/models';
+import type { Gender } from '@/types';
+
+/**
+ * Konfigurasi OCR KTP (API pihak ketiga, contoh: OCR.space).
+ * Isi lewat file .env (lihat .env.example), tidak perlu mengubah kode.
+ * Bila kosong, tombol scan menampilkan pesan agar pasien mengisi data manual.
+ *
+ * Catatan keamanan: variabel EXPO_PUBLIC_* ikut terbundel di aplikasi, jadi API key
+ * bisa dibaca orang yang membongkar aplikasi. Untuk produksi, arahkan ENDPOINT ke
+ * proxy / Cloud Function milik sendiri.
+ */
+const KTP_OCR_ENDPOINT: string | null = process.env.EXPO_PUBLIC_KTP_OCR_ENDPOINT || null;
+const KTP_OCR_API_KEY: string | null = process.env.EXPO_PUBLIC_KTP_OCR_API_KEY || null;
+const KTP_OCR_EXTRA_HEADERS: Record<string, string> = {};
+
+export function isKtpOcrConfigured(): boolean {
+  return Boolean(KTP_OCR_ENDPOINT && KTP_OCR_API_KEY);
+}
 
 export interface KtpScanResult {
   nik: string;
@@ -112,7 +128,7 @@ export function extractKtpFromRawText(text: string): KtpScanResult {
 }
 
 export async function scanKtpFromImage(imageUri: string): Promise<KtpScanResult> {
-  if (isMockKtpOcr() || !KTP_OCR_ENDPOINT || !KTP_OCR_API_KEY) {
+  if (!KTP_OCR_ENDPOINT || !KTP_OCR_API_KEY) {
     throw new Error('OCR KTP belum dikonfigurasi. Silakan isi data pasien secara manual.');
   }
 

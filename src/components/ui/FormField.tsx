@@ -7,8 +7,8 @@ import {
   View,
   type TextInputProps,
 } from "react-native";
-import { useColors } from "../../core/theme/ThemeContext";
-import { useScrollToFocusedInput } from "./AuthScreen";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { useScrollToFocusedInput } from "@/components/ui/AuthScreen";
 
 interface FormFieldProps extends TextInputProps {
   label: string;
