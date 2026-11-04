@@ -1,3 +1,10 @@
+import { AuthScreen } from "@/components/ui/AuthScreen";
+import { DatePickerField } from "@/components/ui/DatePickerField";
+import { FormField } from "@/components/ui/FormField";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { scanKtpFromImage } from "@/services/ktp-ocr.service";
+import type { Gender } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -11,17 +18,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthScreen } from "@/components/ui/AuthScreen";
-import { DatePickerField } from "@/components/ui/DatePickerField";
-import { FormField } from "@/components/ui/FormField";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import type { Gender } from "@/types";
-import { useColors } from "@/hooks/useMedicQTheme";
-import { scanKtpFromImage } from "@/services/ktp-ocr.service";
 
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { authService } from "@/services/auth.service";
 import { patientService } from "@/services/patient.service";
-import { useAuthStore } from "@/hooks/useAuthStore";
 
 type Field = "nik" | "fullName" | "dob" | "gender" | "address" | "phone";
 type Values = {
@@ -181,7 +181,9 @@ export default function CompleteProfileScreen() {
       if (result.canceled || !result.assets?.[0]) return;
 
       setScanState("processing");
-      const scan = await scanKtpFromImage(result.assets[0].uri);
+      const asset = result.assets[0];
+
+      const scan = await scanKtpFromImage(asset.uri, asset.mimeType);
 
       setValues((prev) => ({
         ...prev,
@@ -201,10 +203,12 @@ export default function CompleteProfileScreen() {
       }));
       setScanState("filled");
       setScanError(null);
-    } catch {
+    } catch (error) {
       setScanState("error");
       setScanError(
-        "Gagal membaca KTP. Coba foto yang lebih jelas, atau isi manual.",
+        error instanceof Error
+          ? error.message
+          : "Gagal membaca KTP. Coba foto yang lebih jelas, atau isi manual.",
       );
     }
   };
@@ -220,7 +224,7 @@ export default function CompleteProfileScreen() {
       focusFirstError(found);
       return;
     }
-    
+
     // Setelah register, Firebase Auth sudah memiliki currentUser meskipun
     // listener Firestore belum sempat mengisi Zustand. Gunakan currentUser
     // sebagai sumber UID yang paling langsung, lalu fallback ke store.

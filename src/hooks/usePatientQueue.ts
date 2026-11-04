@@ -1,18 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
-import { queueRepository } from '@/services/queue.repository';
-import { registrationRepository } from '@/services/registration.repository';
-import { queueService } from '@/services/queue.service';
-import { useQueueStore } from '@/hooks/useQueueStore';
+import { useQueueStore } from "@/hooks/useQueueStore";
+import { queueRepository } from "@/services/queue.repository";
+import { queueService } from "@/services/queue.service";
+import { registrationRepository } from "@/services/registration.repository";
+import * as Network from "expo-network";
+import { useEffect, useRef, useState } from "react";
 
 function friendlyListenerError(error: Error): string {
-  const code = (error as Error & { code?: string }).code;
-  if (code === 'failed-precondition') {
-    return 'Data belum dapat dimuat karena indeks Firestore belum siap. Pastikan index registrations dan queues berstatus Enabled.';
+  const rawCode = (error as Error & { code?: string }).code ?? "";
+  const code = rawCode.split("/").pop();
+
+  switch (code) {
+    case "failed-precondition":
+      return "Data belum dapat dimuat karena indeks Firestore belum siap. Pastikan index registrations dan queues berstatus Enabled.";
+    case "permission-denied":
+      return "Akses Firestore ditolak (Firebase permission-denied). Periksa role pengguna dan Firestore Rules.";
+    case "unauthenticated":
+      return "Sesi pengguna tidak valid. Silakan login kembali.";
+    case "unavailable":
+      return "Firebase sedang tidak tersedia atau koneksi terputus. Periksa internet dan coba lagi.";
+    case "deadline-exceeded":
+      return "Waktu permintaan ke Firebase habis (timeout). Coba lagi.";
+    case "not-found":
+      return "Data yang diminta tidak ditemukan di Firestore.";
+    case "resource-exhausted":
+      return "Batas pemakaian atau kuota Firebase tercapai. Coba lagi nanti.";
+    default:
+      return (
+        error.message ||
+        "Tidak dapat memuat antrean. Periksa koneksi internet dan konfigurasi Firestore."
+      );
   }
-  if (code === 'permission-denied') {
-    return 'Akses Firestore ditolak. Periksa role pengguna di users/{uid} dan Firestore Rules.';
-  }
-  return 'Tidak dapat memuat antrean. Periksa koneksi internet dan konfigurasi Firestore.';
 }
 
 export const usePatientQueue = (patientId: string | undefined) => {
@@ -31,6 +48,38 @@ export const usePatientQueue = (patientId: string | undefined) => {
   const activeServiceIdRef = useRef<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(patientId));
   const [error, setError] = useState<string | null>(null);
+  const [networkRetryKey, setNetworkRetryKey] = useState(0);
+  const previousOnlineRef = useRef<boolean | null>(null);
+
+  // Pasang ulang listener saat koneksi berubah dari offline menjadi online.
+  useEffect(() => {
+    let mounted = true;
+
+    const isOnline = (
+      state: Awaited<ReturnType<typeof Network.getNetworkStateAsync>>,
+    ) => state.isConnected === true && state.isInternetReachable !== false;
+
+    Network.getNetworkStateAsync()
+      .then((state) => {
+        if (mounted) previousOnlineRef.current = isOnline(state);
+      })
+      .catch(() => {
+        // Banner jaringan di app/_layout.tsx tetap menunjukkan status koneksi.
+      });
+
+    const subscription = Network.addNetworkStateListener((state) => {
+      const online = isOnline(state);
+      if (previousOnlineRef.current === false && online) {
+        setNetworkRetryKey((value) => value + 1);
+      }
+      previousOnlineRef.current = online;
+    });
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -100,7 +149,9 @@ export const usePatientQueue = (patientId: string | undefined) => {
             setMyQueue(queue);
             setIsLoading(false);
             if (!queue) {
-              setError('Nomor antrean belum ditemukan. Minta petugas memeriksa pendaftaran.');
+              setError(
+                "Nomor antrean belum ditemukan. Minta petugas memeriksa pendaftaran.",
+              );
             } else {
               setError(null);
             }
@@ -142,24 +193,40 @@ export const usePatientQueue = (patientId: string | undefined) => {
       registrationUnsub();
       cleanupQueueListeners();
     };
-  }, [patientId, setMyQueue, setMyRegistration, setServiceQueues]);
+  }, [
+    patientId,
+    networkRetryKey,
+    setMyQueue,
+    setMyRegistration,
+    setServiceQueues,
+  ]);
 
   const position =
-    myQueue && myQueue.status !== 'COMPLETED' && serviceQueues.length > 0
-      ? queueService.calculatePosition(serviceQueues, myQueue.id, myQueue.sequenceNumber)
+    myQueue && myQueue.status !== "COMPLETED" && serviceQueues.length > 0
+      ? queueService.calculatePosition(
+          serviceQueues,
+          myQueue.id,
+          myQueue.sequenceNumber,
+        )
       : null;
 
-  const currentServing = serviceQueues.find(
-    (queue) => queue.status === 'CALLED' || queue.status === 'SERVING',
-  ) ?? null;
+  const currentServing =
+    serviceQueues.find(
+      (queue) => queue.status === "CALLED" || queue.status === "SERVING",
+    ) ?? null;
 
   const aheadQueues = myQueue
     ? serviceQueues
         .filter((queue) => {
           const mineOrder = myQueue.queueOrder ?? myQueue.sequenceNumber;
           const order = queue.queueOrder ?? queue.sequenceNumber;
-          return queue.id !== myQueue.id && order < mineOrder &&
-            (queue.status === 'WAITING' || queue.status === 'CALLED' || queue.status === 'SERVING');
+          return (
+            queue.id !== myQueue.id &&
+            order < mineOrder &&
+            (queue.status === "WAITING" ||
+              queue.status === "CALLED" ||
+              queue.status === "SERVING")
+          );
         })
         .slice(0, 3)
     : [];

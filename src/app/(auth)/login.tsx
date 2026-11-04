@@ -1,3 +1,10 @@
+import { AuthScreen } from "@/components/ui/AuthScreen";
+import { FormField } from "@/components/ui/FormField";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { authService, getAuthErrorMessage } from "@/services/auth.service";
+import type { UserRole } from "@/types";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -7,13 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AuthScreen } from "@/components/ui/AuthScreen";
-import { FormField } from "@/components/ui/FormField";
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import type { UserRole } from "@/types";
-import { useColors } from "@/hooks/useMedicQTheme";
-import { authService, getAuthErrorMessage } from "@/services/auth.service";
-import { useAuthStore } from "@/hooks/useAuthStore";
 
 // PRD: pasien & petugas masuk lewat form yang sama (F-P01, F-ST01).
 // Peran ditentukan dari data akun di Firestore, bukan dipilih di layar ini.
@@ -80,7 +80,9 @@ export default function LoginScreen() {
         // jangan diarahkan ke layar pasien/petugas secara spekulatif.
         await authService.signOut();
         setUser(null);
-        setFormError("Role akun belum benar. Periksa users/{UID} di Firestore.");
+        setFormError(
+          "Role akun belum benar. Periksa users/{UID} di Firestore.",
+        );
       }
     } catch (error) {
       setFormError(getAuthErrorMessage(error));
@@ -134,7 +136,7 @@ export default function LoginScreen() {
       />
 
       <PrimaryButton label="Masuk" onPress={handleLogin} loading={loading} />
-      
+      {/*Khusus demo*/}
 
       <View style={[styles.divider, { backgroundColor: c.outlineVariant }]} />
 
