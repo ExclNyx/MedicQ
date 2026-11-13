@@ -12,6 +12,7 @@ function StaffStack() {
       }}
     >
       <Stack.Screen name="dashboard" />
+      <Stack.Screen name="antrian-rest" />
       <Stack.Screen name="[slug]" />
       <Stack.Screen name="patient-detail" />
       <Stack.Screen name="complaint-form" />

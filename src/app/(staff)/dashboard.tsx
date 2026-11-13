@@ -55,6 +55,13 @@ const MENU_ITEMS = [
     group: 'antrian',
   },
   {
+    slug: 'antrian-rest',
+    title: 'Antrean (REST API)',
+    description: 'Ambil, tambah, dan ubah status antrean lewat async fetch (GET, POST, PATCH).',
+    icon: 'cloud-download-outline' as const,
+    group: 'antrian',
+  },
+  {
     slug: 'panggil-berikutnya',
     title: 'Panggil Berikutnya',
     description: 'Memanggil nomor berikutnya secara real-time.',
