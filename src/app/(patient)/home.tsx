@@ -209,7 +209,6 @@ const styles = StyleSheet.create({
   statusIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   statusTitle: { fontSize: 15, lineHeight: 20, fontWeight: '800' },
   statusDescription: { fontSize: 12, lineHeight: 18, marginTop: 3 },
-  flex: { flex: 1, minWidth: 0 },
   loadingScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   loadingText: { fontSize: 13 },
   liveCard: { borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1 },

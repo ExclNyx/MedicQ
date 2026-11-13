@@ -18,6 +18,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  type ScrollViewInstance,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "../../core/theme/ThemeContext";
@@ -77,7 +78,7 @@ export function AuthScreen({
 }: AuthScreenProps) {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const scrollY = useRef(0);
   const keyboardTop = useRef<number | null>(null);
   /** Input terakhir yang di-focus — dipakai ulang saat keyboard muncul. */

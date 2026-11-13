@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
   stepRail: { width: 26, alignItems: 'center' },
   stepIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   line: { width: 2, height: 24, borderRadius: 1 },
-  flex: { flex: 1 },
   stepTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', paddingTop: 5 },
   stepText: { fontSize: 12, lineHeight: 18, marginTop: 2 },
   tip: { borderRadius: 18, borderLeftWidth: 4, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },

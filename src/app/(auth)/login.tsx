@@ -3,9 +3,9 @@ import { useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  type TextInputInstance,
 } from "react-native";
 import { AuthScreen } from "../../components/ui/AuthScreen";
 import { FormField } from "../../components/ui/FormField";
@@ -45,7 +45,7 @@ function validate(email: string, password: string): Errors {
 export default function LoginScreen() {
   const c = useColors();
   const setUser = useAuthStore((state) => state.setUser);
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

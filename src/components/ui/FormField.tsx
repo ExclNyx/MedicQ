@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type TextInputInstance,
   type TextInputProps,
 } from "react-native";
 import { useColors } from "../../core/theme/ThemeContext";
@@ -23,7 +24,7 @@ interface FormFieldProps extends TextInputProps {
  * Kalau `secureTextEntry` diberikan, tombol Lihat/Sembunyikan muncul otomatis.
  * Saat fokus, meneruskan ref ke AuthScreen untuk scroll-into-view (tanpa TextInput.State).
  */
-export const FormField = forwardRef<TextInput, FormFieldProps>(
+export const FormField = forwardRef<TextInputInstance, FormFieldProps>(
   function FormField(
     {
       label,
@@ -43,14 +44,14 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(
     const [hidden, setHidden] = useState(true);
     const isPassword = !!secureTextEntry;
     const scrollToFocusedInput = useScrollToFocusedInput();
-    const innerRef = useRef<TextInput | null>(null);
+    const innerRef = useRef<TextInputInstance | null>(null);
 
-    const setInputRef = (node: TextInput | null) => {
+    const setInputRef = (node: TextInputInstance | null) => {
       innerRef.current = node;
       if (typeof ref === "function") {
         ref(node);
       } else if (ref && typeof ref === "object") {
-        (ref as { current: TextInput | null }).current = node;
+        (ref as { current: TextInputInstance | null }).current = node;
       }
     };
 

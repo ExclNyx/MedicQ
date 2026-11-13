@@ -3,9 +3,9 @@ import { useRef, useState, type RefObject } from "react";
 import {
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  type TextInputInstance,
 } from "react-native";
 import { AuthScreen } from "../../components/ui/AuthScreen";
 import { FormField } from "../../components/ui/FormField";
@@ -41,12 +41,12 @@ function validate(values: Values): Errors {
 
 export default function RegisterScreen() {
   const c = useColors();
-  const nameRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const confirmRef = useRef<TextInput>(null);
+  const nameRef = useRef<TextInputInstance>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
+  const confirmRef = useRef<TextInputInstance>(null);
 
-  const fieldRefs: Record<Field, RefObject<TextInput | null>> = {
+  const fieldRefs: Record<Field, RefObject<TextInputInstance | null>> = {
     name: nameRef,
     email: emailRef,
     password: passwordRef,

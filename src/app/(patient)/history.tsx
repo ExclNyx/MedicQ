@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PatientHeader } from "../../components/ui/PatientHeader";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { RegistrationModel } from "../../core/models";
 import { useColors } from "../../core/theme/ThemeContext";
 import { useAuthStore } from "../../stores/auth.store";
@@ -14,14 +13,14 @@ import { registrationService } from "../../services/registration.service";
 /** Parse "YYYY-MM-DD" sebagai tanggal lokal (hindari geser timezone UTC). */
 function parseLocalDate(value: string): Date {
   const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
+  return new Date(y ?? 1, (m ?? 1) - 1, d ?? 1);
 }
 
 export default function HistoryScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
-  
+
   const [history, setHistory] = useState<RegistrationModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -36,7 +35,8 @@ export default function HistoryScreen() {
     setLoading(true);
     setLoadError(null);
 
-    registrationService.getHistory(user.uid)
+    registrationService
+      .getHistory(user.uid)
       .then((items) => {
         if (active) setHistory(items);
       })
@@ -44,9 +44,9 @@ export default function HistoryScreen() {
         if (!active) return;
         const code = (error as Error & { code?: string })?.code;
         setLoadError(
-          code === 'permission-denied'
-            ? 'Akses riwayat ditolak oleh Firestore Rules.'
-            : 'Riwayat tidak dapat dimuat. Periksa koneksi internet dan konfigurasi Firebase.',
+          code === "permission-denied"
+            ? "Akses riwayat ditolak oleh Firestore Rules."
+            : "Riwayat tidak dapat dimuat. Periksa koneksi internet dan konfigurasi Firebase.",
         );
         setHistory([]);
       })
@@ -91,7 +91,7 @@ export default function HistoryScreen() {
               Belum ada riwayat
             </Text>
             <Text style={[styles.emptyText, { color: c.onSurfaceVariant }]}>
-              {loadError ?? 'Kunjungan yang sudah selesai akan muncul di sini.'}
+              {loadError ?? "Kunjungan yang sudah selesai akan muncul di sini."}
             </Text>
           </View>
         }
@@ -134,9 +134,28 @@ export default function HistoryScreen() {
                       {dateLabel}
                     </Text>
                   </View>
-                  <View style={[styles.badge, { backgroundColor: item.status === 'CANCELLED' ? c.statusSkippedBg : c.statusCompletedBg }]}>
-                    <Text style={{ fontSize: 11, color: item.status === 'CANCELLED' ? c.statusSkipped : c.statusCompleted, fontWeight: '600' }}>
-                      {item.status === 'CANCELLED' ? 'Dibatalkan' : 'Selesai'}
+                  <View
+                    style={[
+                      styles.badge,
+                      {
+                        backgroundColor:
+                          item.status === "CANCELLED"
+                            ? c.statusSkippedBg
+                            : c.statusCompletedBg,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color:
+                          item.status === "CANCELLED"
+                            ? c.statusSkipped
+                            : c.statusCompleted,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {item.status === "CANCELLED" ? "Dibatalkan" : "Selesai"}
                     </Text>
                   </View>
                 </View>
@@ -251,6 +270,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
     flexShrink: 1,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    flexShrink: 0,
   },
   divider: { height: 1, marginVertical: 12 },
   metaRow: {

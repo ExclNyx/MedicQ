@@ -7,9 +7,9 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
+  type TextInputInstance,
 } from "react-native";
 import { AuthScreen } from "../../components/ui/AuthScreen";
 import { DatePickerField } from "../../components/ui/DatePickerField";
@@ -97,14 +97,14 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
 
 export default function CompleteProfileScreen() {
   const c = useColors();
-  const nikRef = useRef<TextInput>(null);
-  const nameRef = useRef<TextInput>(null);
-  const addressRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
+  const nikRef = useRef<TextInputInstance>(null);
+  const nameRef = useRef<TextInputInstance>(null);
+  const addressRef = useRef<TextInputInstance>(null);
+  const phoneRef = useRef<TextInputInstance>(null);
 
   const fieldRefs: Record<
     Exclude<Field, "gender" | "dob">,
-    RefObject<TextInput | null>
+    RefObject<TextInputInstance | null>
   > = {
     nik: nikRef,
     fullName: nameRef,

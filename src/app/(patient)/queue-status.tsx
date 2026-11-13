@@ -4,7 +4,6 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PatientHeader } from "../../components/ui/PatientHeader";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import type { QueueStatus } from "../../core/models";
 import { useColors } from "../../core/theme/ThemeContext";
 import { useAuthStore } from "../../stores/auth.store";
 import { usePatientQueue } from "../../hooks/usePatientQueue";
@@ -13,7 +12,7 @@ export default function QueueStatusScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
-  
+
   const { myQueue, serviceQueues, position, currentServing, isLoading, error } = usePatientQueue(user?.uid);
 
   if (isLoading) {
