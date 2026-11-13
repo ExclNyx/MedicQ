@@ -1,5 +1,5 @@
-import { Gender, PatientModel } from '../core/models';
-import { patientRepository } from '../repositories/patient.repository';
+import { Gender, PatientModel } from '@/types';
+import { patientRepository } from '@/services/patient.repository';
 
 export interface CreatePatientInput {
   nik: string;

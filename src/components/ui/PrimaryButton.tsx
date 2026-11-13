@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
 } from "react-native";
-import { useColors } from "../../core/theme/ThemeContext";
+import { useColors } from "@/hooks/useMedicQTheme";
 
 interface PrimaryButtonProps {
   label: string;

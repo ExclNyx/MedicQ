@@ -6,9 +6,9 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '../core/config/firebase';
-import { UserModel } from '../core/models';
-import { userRepository } from '../repositories/user.repository';
+import { auth } from '@/services/firebase';
+import { UserModel } from '@/types';
+import { userRepository } from '@/services/user.repository';
 
 export function getAuthErrorMessage(error: unknown): string {
   const code = (error as { code?: string })?.code;

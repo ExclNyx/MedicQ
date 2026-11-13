@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { QueueModel } from '../../core/models';
-import { useColors } from '../../core/theme/ThemeContext';
-import { StatusBadge } from '../ui/StatusBadge';
+import type { QueueModel } from '@/types';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 
 interface Props {
   queue: QueueModel;

@@ -12,21 +12,20 @@ import {
   View,
 } from 'react-native';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { RegistrationItem } from '../../components/staff/RegistrationItem';
-import { QueueListItem } from '../../components/staff/QueueListItem';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { DEFAULT_SERVICES } from '../../core/constants/services';
-import type { PatientModel } from '../../core/models';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { useQueueStore } from '../../stores/queue.store';
-import { useStaffQueue } from '../../hooks/useStaffQueue';
-import { authService } from '../../services/auth.service';
-import { patientService } from '../../services/patient.service';
-import { queueService } from '../../services/queue.service';
-import { registrationService } from '../../services/registration.service';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { RegistrationItem } from '@/components/staff/RegistrationItem';
+import { QueueListItem } from '@/components/staff/QueueListItem';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { DEFAULT_SERVICES } from '@/constants/poli-options';
+import type { PatientModel } from '@/types';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { useQueueStore } from '@/hooks/useQueueStore';
+import { useQueueActions } from '@/hooks/useQueueActions';
+import { useStaffQueue } from '@/hooks/useStaffQueue';
+import { patientService } from '@/services/patient.service';
+import { registrationService } from '@/services/registration.service';
 
 const MODULES: Record<
   string,
@@ -37,11 +36,7 @@ const MODULES: Record<
     description: 'Pasien yang mendaftar melalui aplikasi akan muncul di sini secara real-time.',
     icon: 'document-text-outline',
   },
-  'registrasi-pasien': {
-    title: 'Registrasi Pasien',
-    description: 'Daftarkan pasien yang datang langsung ke puskesmas.',
-    icon: 'person-add-outline',
-  },
+
   'cari-pasien': {
     title: 'Cari Pasien',
     description: 'Cari berdasarkan NIK, nama, atau nomor rekam medis.',
@@ -53,8 +48,8 @@ const MODULES: Record<
     icon: 'shield-checkmark-outline',
   },
   keluhan: {
-    title: 'Keluhan',
-    description: 'Pilih keluhan pasien dan lanjutkan proses penentuan poli.',
+    title: 'Keluhan dan Pilih Poli',
+    description: 'Memeriksa keluhan, melihat rekomendasi poli, dan mengonfirmasi poli tujuan pasien.',
     icon: 'chatbox-ellipses-outline',
   },
   'pilih-poli': {
@@ -133,12 +128,6 @@ export default function StaffModuleScreen() {
   const [results, setResults] = useState<PatientModel[]>([]);
   const activeService = DEFAULT_SERVICES.find((s) => s.id === serviceId) ?? DEFAULT_SERVICES[0];
 
-  const logout = async () => {
-    await authService.signOut();
-    useAuthStore.getState().setUser(null);
-    router.replace('/(auth)/login');
-  };
-
   const doSearch = async () => {
     const term = search.trim();
     if (!term) {
@@ -155,7 +144,7 @@ export default function StaffModuleScreen() {
     }
   };
 
-  const goManualRegister = () => router.push('/(staff)/manual-register');
+
 
   const openRegistration = (regId: string, patientId: string) =>
     router.push(`/(staff)/patient-detail?id=${patientId}&regId=${regId}`);
@@ -163,32 +152,7 @@ export default function StaffModuleScreen() {
   const openComplaint = (regId: string) =>
     router.push(`/(staff)/complaint-form?regId=${regId}`);
 
-  const callNext = async () => {
-    try {
-      const next = await queueService.callNext(activeService.id);
-      if (!next) Alert.alert('Antrean kosong', 'Tidak ada pasien yang sedang menunggu.');
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat memanggil antrean.');
-    }
-  };
-
-  const recall = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.recallQueue(currentServing.id, activeService.id);
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat memanggil ulang.');
-    }
-  };
-
-  const skip = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.skipQueue(currentServing.id);
-    } catch (e: any) {
-      Alert.alert('Gagal', e?.message || 'Tidak dapat melewati antrean.');
-    }
-  };
+  const { callNext, recall, skip, complete } = useQueueActions(activeService.id, currentServing);
 
   const completedOrSkipped = useMemo(
     () => staffServiceQueues.filter((q) => q.status === 'COMPLETED' || q.status === 'SKIPPED'),
@@ -205,20 +169,7 @@ export default function StaffModuleScreen() {
   }
 
   const renderBody = () => {
-    if (slug === 'registrasi-pasien') {
-      return (
-        <View style={styles.stack}>
-          <View style={[styles.heroCard, { backgroundColor: c.surface, borderColor: c.cardBorder }]}>
-            <View style={[styles.heroIcon, { backgroundColor: c.primaryContainer }]}>
-              <Ionicons name="person-add-outline" size={28} color={c.primary} />
-            </View>
-            <Text style={[styles.cardTitle, { color: c.onSurface }]}>Registrasi Pasien Manual</Text>
-            <Text style={[styles.cardDescription, { color: c.onSurfaceVariant }]}>Data pasien, lalu data pendaftaran, akan langsung disimpan ke Firestore collection <Text style={{ fontWeight: '800' }}>patients</Text> dan <Text style={{ fontWeight: '800' }}>registrations</Text>.</Text>
-            <PrimaryButton label="REGISTRASI PASIEN" onPress={goManualRegister} />
-          </View>
-        </View>
-      );
-    }
+
 
     if (slug === 'cari-pasien') {
       return (
@@ -284,7 +235,7 @@ export default function StaffModuleScreen() {
             <RegistrationItem
               key={reg.id}
               registration={reg}
-              actionLabel={slug === 'keluhan' ? 'KELOLA' : 'PILIH POLI'}
+              actionLabel="KELOLA & PILIH POLI"
               onVerify={() => openComplaint(reg.id)}
             />
           ))}
@@ -313,12 +264,13 @@ export default function StaffModuleScreen() {
             <Text style={[styles.currentName, { color: c.onSurface }]}>{currentServing?.patientName ?? 'Belum ada pasien'}</Text>
 
             {slug === 'panggil-berikutnya' ? <PrimaryButton label="PANGGIL BERIKUTNYA" disabled={!waitingQueues.length} onPress={callNext} /> : null}
+            {slug === 'panggil-berikutnya' ? <OutlineButton label="SELESAI DILAYANI" icon="checkmark-circle-outline" disabled={!currentServing} onPress={complete} /> : null}
             {slug === 'panggil-ulang' ? <PrimaryButton label="PANGGIL ULANG" disabled={!currentServing} onPress={recall} /> : null}
             {slug === 'lewati-no-show' ? <OutlineButton label="LEWATI / NO SHOW" icon="close-circle-outline" tone="danger" disabled={!currentServing} onPress={skip} /> : null}
           </View>
 
           <Text style={[styles.sectionTitle, { color: c.onSurface }]}>Daftar Tunggu ({waitingQueues.length})</Text>
-          {waitingQueues.map((queue, index) => <QueueListItem key={queue.id} queue={queue} position={index + 1} onSkip={skip} />)}
+          {waitingQueues.map((queue, index) => <QueueListItem key={queue.id} queue={queue} position={index + 1} />)}
           {slug === 'antrian' && waitingQueues.length === 0 ? <Empty label="Tidak ada antrean menunggu." /> : null}
         </View>
       );

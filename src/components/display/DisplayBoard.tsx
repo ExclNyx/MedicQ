@@ -1,22 +1,9 @@
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import type { QueueModel, ServiceModel } from '../../core/models';
+import { displayPalette as TV } from '@/constants/colors';
+import type { QueueModel, ServiceModel } from '@/types';
 
 const { width, height } = Dimensions.get('window');
 const big = Math.min(width, height);
-
-// Warna display TV tetap (bukan dark-mode app): kontras tinggi dari jauh.
-const TV = {
-  bg: '#0D47A1',
-  headerBg: '#0A3A82',
-  nextBg: 'rgba(0,0,0,0.22)',
-  cardBg: 'rgba(255,255,255,0.14)',
-  cardBorder: 'rgba(255,255,255,0.32)',
-  onBg: '#FFFFFF',
-  muted: '#BBDEFB',
-  accent: '#FFFFFF',
-  bannerBg: '#FFFFFF',
-  bannerText: '#0D47A1',
-} as const;
 
 interface Props {
   service: ServiceModel | null;
@@ -144,7 +131,7 @@ const styles = StyleSheet.create({
   bigNumberMuted: {
     fontSize: big * 0.22,
     fontWeight: '900',
-    color: 'rgba(255,255,255,0.45)',
+    color: TV.bigNumberMuted,
     letterSpacing: 8,
     textAlign: 'center',
     alignSelf: 'stretch',

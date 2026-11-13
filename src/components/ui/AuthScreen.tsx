@@ -21,8 +21,8 @@ import {
   type ScrollViewInstance,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useColors } from "../../core/theme/ThemeContext";
-import { ThemeToggle } from "./ThemeToggle";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /** Objek yang punya measureInWindow (instance TextInput). */
 export interface MeasureTarget {
@@ -199,14 +199,14 @@ export function AuthScreen({
               {brand && (
                 <View style={styles.brand}>
                   <View
-                    style={styles.logo}
+                    style={[styles.logo, { backgroundColor: c.white }]}
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
                   >
                     {brand.logo ?? (
                       <>
-                        <View style={styles.crossVertical} />
-                        <View style={styles.crossHorizontal} />
+                        <View style={[styles.crossVertical, { backgroundColor: c.primary }]} />
+                        <View style={[styles.crossHorizontal, { backgroundColor: c.primary }]} />
                       </>
                     )}
                   </View>
@@ -316,7 +316,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -326,14 +325,12 @@ const styles = StyleSheet.create({
     width: 14,
     height: 40,
     borderRadius: 4,
-    backgroundColor: "#1565C0",
   },
   crossHorizontal: {
     position: "absolute",
     width: 40,
     height: 14,
     borderRadius: 4,
-    backgroundColor: "#1565C0",
   },
   appName: {
     fontSize: 26,

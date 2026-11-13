@@ -1,10 +1,44 @@
-import { useEffect } from 'react';
-import { useQueueStore } from '../stores/queue.store';
-import { registrationRepository } from '../repositories/registration.repository';
-import { queueRepository } from '../repositories/queue.repository';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, Collections, fromFirestore } from '../core/config/firebase';
-import { ServiceModel } from '../core/models';
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { useEffect } from "react";
+import { Alert } from "react-native";
+
+import { useQueueStore } from "@/hooks/useQueueStore";
+import { Collections, db, fromFirestore } from "@/services/firebase";
+import { queueRepository } from "@/services/queue.repository";
+import { registrationRepository } from "@/services/registration.repository";
+import { ServiceModel } from "@/types";
+
+function friendlyListenerError(error: Error): string {
+  const rawCode = (error as Error & { code?: string }).code ?? "";
+  const code = rawCode.split("/").pop();
+
+  switch (code) {
+    case "permission-denied":
+      return "Akses Firestore ditolak (Firebase permission-denied). Periksa role petugas dan Firestore Rules.";
+    case "unauthenticated":
+      return "Sesi pengguna tidak valid. Silakan login kembali.";
+    case "unavailable":
+      return "Firebase sedang tidak tersedia atau koneksi terputus. Periksa internet.";
+    case "deadline-exceeded":
+      return "Waktu permintaan ke Firebase habis (timeout).";
+    case "failed-precondition":
+      return "Operasi belum dapat dilakukan. Periksa konfigurasi atau indeks Firestore.";
+    case "not-found":
+      return "Data yang diminta tidak ditemukan di Firestore.";
+    case "resource-exhausted":
+      return "Batas pemakaian atau kuota Firebase tercapai. Coba lagi nanti.";
+    default:
+      return (
+        error.message ||
+        "Tidak dapat memuat data. Periksa koneksi dan Firebase."
+      );
+  }
+}
+
+function showListenerError(scope: string, error: Error) {
+  console.warn(`[MedicQ] ${scope}:`, error);
+  Alert.alert(`${scope} gagal dimuat`, friendlyListenerError(error));
+}
 
 export const useStaffQueue = (selectedServiceId: string) => {
   const {
@@ -19,66 +53,80 @@ export const useStaffQueue = (selectedServiceId: string) => {
   } = useQueueStore();
 
   useEffect(() => {
-    // Listen to pending registrations
     const pendingUnsub = registrationRepository.listenPending(
-      (regs) => setPendingRegistrations(regs),
+      (registrations) => setPendingRegistrations(registrations),
       (error) => {
         setPendingRegistrations([]);
-        console.warn('[MedicQ] Pendaftaran pending tidak tersedia:', error.message);
+        showListenerError("Pendaftaran pending", error);
       },
     );
 
-    // Listen to verified registrations
     const verifiedUnsub = registrationRepository.listenVerified(
-      (regs) => setVerifiedRegistrations(regs),
+      (registrations) => setVerifiedRegistrations(registrations),
       (error) => {
         setVerifiedRegistrations([]);
-        console.warn('[MedicQ] Pendaftaran terverifikasi tidak tersedia:', error.message);
+        showListenerError("Pendaftaran terverifikasi", error);
       },
     );
 
-    // Listen to services
-    const q = query(
+    const servicesQuery = query(
       collection(db, Collections.SERVICES),
-      where('isActive', '==', true)
+      where("isActive", "==", true),
     );
-    const servicesUnsub = onSnapshot(q, (snap) => {
-      const items = snap.docs.map(
-        (d) => ({ id: d.id, ...fromFirestore(d.data()) } as unknown as ServiceModel)
-      );
-      setServices(items);
-    }, (error) => {
-      setServices([]);
-      console.warn('[MedicQ] Daftar poli tidak tersedia:', error.message);
-    });
+
+    const servicesUnsub = onSnapshot(
+      servicesQuery,
+      (snapshot) => {
+        const items = snapshot.docs.map(
+          (document) =>
+            ({
+              id: document.id,
+              ...fromFirestore(document.data()),
+            }) as unknown as ServiceModel,
+        );
+        setServices(items);
+      },
+      (error) => {
+        setServices([]);
+        showListenerError("Daftar poli", error);
+      },
+    );
 
     return () => {
       pendingUnsub();
       verifiedUnsub();
       servicesUnsub();
     };
-  }, []);
+  }, [setPendingRegistrations, setVerifiedRegistrations, setServices]);
 
   useEffect(() => {
-    if (!selectedServiceId) return;
-    const unsub = queueRepository.listenAllByServiceToday(
+    if (!selectedServiceId) {
+      setStaffServiceQueues([]);
+      return;
+    }
+
+    const unsubscribe = queueRepository.listenAllByServiceToday(
       selectedServiceId,
       (queues) => setStaffServiceQueues(queues),
       (error) => {
         setStaffServiceQueues([]);
-        console.warn('[MedicQ] Antrean poli tidak tersedia:', error.message);
+        showListenerError("Antrean poli", error);
       },
     );
-    return () => unsub();
-  }, [selectedServiceId]);
+
+    return () => unsubscribe();
+  }, [selectedServiceId, setStaffServiceQueues]);
 
   const currentServing = staffServiceQueues.find(
-    (q) => q.status === 'CALLED' || q.status === 'SERVING'
+    (queue) => queue.status === "CALLED" || queue.status === "SERVING",
   );
 
-  const waitingQueues = staffServiceQueues.filter((q) => q.status === 'WAITING');
+  const waitingQueues = staffServiceQueues.filter(
+    (queue) => queue.status === "WAITING",
+  );
+
   const completedQueues = staffServiceQueues.filter(
-    (q) => q.status === 'COMPLETED' || q.status === 'SKIPPED'
+    (queue) => queue.status === "COMPLETED" || queue.status === "SKIPPED",
   );
 
   return {

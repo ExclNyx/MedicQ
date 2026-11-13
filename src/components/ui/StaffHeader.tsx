@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColors } from '../../core/theme/ThemeContext';
-import { ThemeToggle } from './ThemeToggle';
-import { authService } from '../../services/auth.service';
-import { useAuthStore } from '../../stores/auth.store';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 interface StaffHeaderProps {
   title: string;

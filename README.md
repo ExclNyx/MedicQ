@@ -102,3 +102,12 @@ Untuk pasien yang datang langsung melalui menu Petugas -> Registrasi Pasien:
 `Form Petugas -> Firestore patients/{NIK} -> Firestore registrations/{registrationId}`
 
 Nomor rekam medis sederhana dibuat otomatis untuk data pasien baru agar dapat dipakai saat pencarian. Search NIK dilakukan langsung dengan query Firestore; pencarian nama/RM dilakukan pada data pasien yang diambil dari Firestore karena skala project saat ini masih kecil.
+
+
+## Struktur kode untuk modifikasi demo
+
+Folder utama source disederhanakan menjadi `app`, `components`, `services`, `hooks`, dan `constants`; model bersama ada di `src/types.ts`. Untuk peta file dan contoh modifikasi Modul 1–2, baca `PROJECT_STRUCTURE.md` dan `DEMO_MODIFICATION_GUIDE.md`. Styling native tetap memakai `StyleSheet.create()` dekat layar/komponen, sedangkan palet warna utama ada di `src/constants/colors.ts` dan opsi poli ada di `src/constants/poli-options.ts`.
+
+## Struktur & panduan ubah kode
+
+Lihat [`docs/PETA_PROYEK.md`](docs/PETA_PROYEK.md): peta folder, "mau ubah apa buka file mana", dan aturan agar tidak error saat live coding.

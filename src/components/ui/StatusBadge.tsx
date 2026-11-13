@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useColors } from '../../core/theme/ThemeContext';
-import type { ColorKey } from '../../core/constants/colors';
-import type { QueueStatus } from '../../core/models';
+import { useColors } from '@/hooks/useMedicQTheme';
+import type { ColorKey } from '@/constants/colors';
+import type { QueueStatus } from '@/types';
 
 interface Props {
   status: QueueStatus;

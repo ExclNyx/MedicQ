@@ -1,19 +1,22 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { Colors } from "../../core/constants/colors";
+import { useColors } from "@/hooks/useMedicQTheme";
 
 interface Props {
   message?: string;
 }
 
-export const LoadingOverlay: React.FC<Props> = ({ message = "Memuat..." }) => (
-  <View style={styles.overlay}>
-    <View style={styles.card}>
-      <ActivityIndicator size="large" color={Colors.primary} />
-      <Text style={styles.message}>{message}</Text>
+export const LoadingOverlay: React.FC<Props> = ({ message = "Memuat..." }) => {
+  const c = useColors();
+  return (
+    <View style={styles.overlay}>
+      <View style={[styles.card, { backgroundColor: c.surface }]}>
+        <ActivityIndicator size="large" color={c.primary} />
+        <Text style={[styles.message, { color: c.onSurface }]}>{message}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   overlay: {
@@ -24,7 +27,6 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   card: {
-    backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
@@ -33,6 +35,5 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: Colors.onSurface,
   },
 });

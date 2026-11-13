@@ -3,12 +3,12 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { OutlineButton } from "../../components/ui/OutlineButton";
-import { PatientHeader } from "../../components/ui/PatientHeader";
-import { PrimaryButton } from "../../components/ui/PrimaryButton";
-import { useColors } from "../../core/theme/ThemeContext";
-import { useAuthStore } from "../../stores/auth.store";
-import { registrationService } from "../../services/registration.service";
+import { OutlineButton } from "@/components/ui/OutlineButton";
+import { PatientHeader } from "@/components/ui/PatientHeader";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { useColors } from "@/hooks/useMedicQTheme";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import { registrationService } from "@/services/registration.service";
 
 const STEPS = [
   {

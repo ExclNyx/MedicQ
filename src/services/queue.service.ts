@@ -8,11 +8,11 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { Collections, db, getTodayString } from '../core/config/firebase';
-import { getServiceById, getServiceCode } from '../core/constants/services';
-import { QueueModel } from '../core/models';
-import { queueRepository } from '../repositories/queue.repository';
-import { registrationRepository } from '../repositories/registration.repository';
+import { Collections, db, getTodayString } from '@/services/firebase';
+import { getServiceById, getServiceCode } from '@/constants/poli-options';
+import { QueueModel } from '@/types';
+import { queueRepository } from '@/services/queue.repository';
+import { registrationRepository } from '@/services/registration.repository';
 
 export interface AssignQueueInput {
   registrationId: string;

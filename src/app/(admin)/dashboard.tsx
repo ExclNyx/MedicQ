@@ -11,11 +11,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { authService } from '../../services/auth.service';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 const MENU_ITEMS = [
   {

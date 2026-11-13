@@ -4,7 +4,6 @@ import { id as localeId } from 'date-fns/locale';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,17 +12,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import { DEFAULT_SERVICES } from '../../core/constants/services';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useStaffQueue } from '../../hooks/useStaffQueue';
-import { authService } from '../../services/auth.service';
-import { queueService } from '../../services/queue.service';
-import { useAuthStore } from '../../stores/auth.store';
-import { useQueueStore } from '../../stores/queue.store';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { DEFAULT_SERVICES } from '@/constants/poli-options';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useQueueActions } from '@/hooks/useQueueActions';
+import { useStaffQueue } from '@/hooks/useStaffQueue';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { useQueueStore } from '@/hooks/useQueueStore';
 
 const MENU_ITEMS = [
 
@@ -43,16 +42,9 @@ const MENU_ITEMS = [
   },
   {
     slug: 'keluhan',
-    title: 'Keluhan',
-    description: 'Mencatat atau mengonfirmasi keluhan pasien.',
+    title: 'Keluhan dan Pilih Poli',
+    description: 'Memeriksa keluhan, melihat rekomendasi poli, dan mengonfirmasi poli tujuan pasien.',
     icon: 'chatbox-ellipses-outline' as const,
-    group: 'pasien',
-  },
-  {
-    slug: 'pilih-poli',
-    title: 'Pilih Poli',
-    description: 'Menentukan atau mengonfirmasi poli tujuan pasien.',
-    icon: 'business-outline' as const,
     group: 'pasien',
   },
   {
@@ -60,6 +52,13 @@ const MENU_ITEMS = [
     title: 'Antrian',
     description: 'Melihat daftar nomor antrean pada poli yang ditangani.',
     icon: 'list-outline' as const,
+    group: 'antrian',
+  },
+  {
+    slug: 'antrian-rest',
+    title: 'Antrean (REST API)',
+    description: 'Ambil, tambah, dan ubah status antrean lewat async fetch (GET, POST, PATCH).',
+    icon: 'cloud-download-outline' as const,
     group: 'antrian',
   },
   {
@@ -211,32 +210,7 @@ export default function StaffDashboardScreen() {
   const todayLabel = format(new Date(), 'EEEE, d MMMM yyyy', { locale: localeId });
   const nextQueue = waitingQueues[0];
 
-  const handleCallNext = async () => {
-    if (!nextQueue) return;
-    try {
-      await queueService.callQueue(nextQueue.id, activeService.id);
-    } catch (e: any) {
-      Alert.alert('Gagal memanggil', e?.message || 'Terjadi kesalahan.');
-    }
-  };
-
-  const handleRecall = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.recallQueue(currentServing.id, activeService.id);
-    } catch (e: any) {
-      Alert.alert('Gagal memanggil ulang', e?.message || 'Terjadi kesalahan.');
-    }
-  };
-
-  const handleSkip = async () => {
-    if (!currentServing) return;
-    try {
-      await queueService.skipQueue(currentServing.id);
-    } catch (e: any) {
-      Alert.alert('Gagal melewati antrean', e?.message || 'Terjadi kesalahan.');
-    }
-  };
+  const { callNext, recall, skip, complete } = useQueueActions(activeService.id, currentServing);
 
   const signOut = async () => {
     await authService.signOut();
@@ -338,12 +312,16 @@ export default function StaffDashboardScreen() {
             <PrimaryButton
               label={nextQueue ? `PANGGIL BERIKUTNYA (${nextQueue.queueNumber})` : 'TIDAK ADA ANTREAN'}
               disabled={!nextQueue}
-              onPress={handleCallNext}
+              onPress={callNext}
             />
 
             <View style={styles.actionRow}>
-              <OutlineButton label="Panggil Ulang" icon="refresh-outline" disabled={!currentServing} onPress={handleRecall} />
-              <OutlineButton label="Lewati / No Show" icon="close-circle-outline" tone="danger" disabled={!currentServing} onPress={handleSkip} />
+              <OutlineButton label="Panggil Ulang" icon="refresh-outline" disabled={!currentServing} onPress={recall} />
+              <OutlineButton label="Lewati / No Show" icon="close-circle-outline" tone="danger" disabled={!currentServing} onPress={skip} />
+            </View>
+
+            <View style={styles.completeRow}>
+              <OutlineButton label="Selesai Dilayani" icon="checkmark-circle-outline" disabled={!currentServing} onPress={complete} />
             </View>
           </View>
 
@@ -389,6 +367,7 @@ export default function StaffDashboardScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
@@ -420,7 +399,15 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '600' },
   currentNumber: { fontSize: 40, lineHeight: 48, fontWeight: '800', letterSpacing: 2, marginTop: 2 },
   currentName: { fontSize: 15, lineHeight: 20, fontWeight: '600', marginTop: -6 },
-  actionRow: { flexDirection: 'row', gap: 10 },
+
+  // Baris tombol Kontrol Antrean
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  completeRow: { marginTop: 10 },
+
   group: { gap: 12 },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chevronCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

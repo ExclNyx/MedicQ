@@ -11,16 +11,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PatientHeader } from '../../components/ui/PatientHeader';
-import { PrimaryButton } from '../../components/ui/PrimaryButton';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import type { RegistrationModel } from '../../core/models';
-import { useColors } from '../../core/theme/ThemeContext';
-import { registrationRepository } from '../../repositories/registration.repository';
-import { patientService } from '../../services/patient.service';
-import { authService } from '../../services/auth.service';
-import { useAuthStore } from '../../stores/auth.store';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PatientHeader } from '@/components/ui/PatientHeader';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import type { RegistrationModel } from '@/types';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { registrationRepository } from '@/services/registration.repository';
+import { patientService } from '@/services/patient.service';
+import { authService } from '@/services/auth.service';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 export default function PatientAccessScreen() {
   const c = useColors();

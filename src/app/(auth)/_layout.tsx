@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useColors } from '../../core/theme/ThemeContext';
+import { useColors } from '@/hooks/useMedicQTheme';
 
 export default function AuthLayout() {
   const c = useColors();

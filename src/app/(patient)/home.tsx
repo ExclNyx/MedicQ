@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OutlineButton } from '../../components/ui/OutlineButton';
-import { PatientHeader } from '../../components/ui/PatientHeader';
-import { QueueCard } from '../../components/ui/QueueCard';
-import { ThemeToggle } from '../../components/ui/ThemeToggle';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
-import { usePatientQueue } from '../../hooks/usePatientQueue';
-import { authService } from '../../services/auth.service';
+import { OutlineButton } from '@/components/ui/OutlineButton';
+import { PatientHeader } from '@/components/ui/PatientHeader';
+import { QueueCard } from '@/components/ui/QueueCard';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { usePatientQueue } from '@/hooks/usePatientQueue';
+import { authService } from '@/services/auth.service';
 
 export default function PatientHomeScreen() {
   const c = useColors();

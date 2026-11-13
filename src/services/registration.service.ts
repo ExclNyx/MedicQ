@@ -1,7 +1,7 @@
-import { registrationRepository } from '../repositories/registration.repository';
-import { patientRepository } from '../repositories/patient.repository';
-import { RegistrationModel } from '../core/models';
-import { getTodayString } from '../core/config/firebase';
+import { registrationRepository } from '@/services/registration.repository';
+import { patientRepository } from '@/services/patient.repository';
+import { RegistrationModel } from '@/types';
+import { getTodayString } from '@/services/firebase';
 
 export interface CreateRegistrationInput {
   patientId: string;
@@ -60,11 +60,18 @@ export class RegistrationService {
   }
 
   async getPatientTodayRegistration(patientId: string): Promise<RegistrationModel | null> {
-    return new Promise((resolve) => {
-      const unsub = registrationRepository.listenPatientToday(patientId, (reg) => {
-        unsub();
-        resolve(reg);
-      });
+    return new Promise((resolve, reject) => {
+      const unsub = registrationRepository.listenPatientToday(
+        patientId,
+        (reg) => {
+          unsub();
+          resolve(reg);
+        },
+        (error) => {
+          unsub();
+          reject(error);
+        },
+      );
     });
   }
 

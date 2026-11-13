@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { StaffHeader } from '../../components/ui/StaffHeader';
-import { useColors } from '../../core/theme/ThemeContext';
-import { useAuthStore } from '../../stores/auth.store';
+import { StaffHeader } from '@/components/ui/StaffHeader';
+import { useColors } from '@/hooks/useMedicQTheme';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 const MODULES: Record<string, { title: string; description: string; icon: keyof typeof Ionicons.glyphMap }> = {
   'data-pasien': {
